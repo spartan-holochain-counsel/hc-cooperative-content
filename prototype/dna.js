@@ -23,7 +23,7 @@ export const dna = new DNA([
 	"LinkTypes": [
 	    "Group",
 	    "GroupMember",
-	    "GroupMemberArchived",
+	    "GroupMemberArchive",
 	    "Subject",
 	    "SubjectUpdate",
 	],

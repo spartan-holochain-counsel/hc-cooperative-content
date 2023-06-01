@@ -125,9 +125,9 @@ console.log("C2aa update: %s", content_2aa_action.toString(true) );
 //   the group revision
 //
 // Dynamic
-// - A2 cannot update the group
-// - A3 cannot update group content
-// - A2 and A3 cannot create links off of G1
+// - A2 cannot update the group (G1)
+// - A3 cannot update group content (C1)
+// - A2 and A3 cannot create links off of the group (G1)
 
 // expect_failure( () => {
 //     updateSubject( cell_3, content_1_id );

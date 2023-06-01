@@ -1,0 +1,7 @@
+.cargo
+target
+zomes/*.wasm
+tests/node_modules
+tests/*.dna
+tests/*/target
+tests/*/zomes/*.wasm

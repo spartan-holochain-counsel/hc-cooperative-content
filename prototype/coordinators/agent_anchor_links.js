@@ -68,9 +68,9 @@ export default {
 	const action_hash	= update_entry( base, entry );	// ActionHash
 
 	// Copy archive anchors from previous group revision unless the member was re-added
-	let archive_links	= get_links( base, LinkTypes.GroupMemberArchived );
+	let archive_links	= get_links( base, LinkTypes.GroupMemberArchive );
 	for ( let link of archive_links ) {
-	    create_link( action_hash, link.target, LinkTypes.GroupMemberArchived, link.tag )
+	    create_link( action_hash, link.target, LinkTypes.GroupMemberArchive, link.tag )
 	}
 
 	// Move removed authorities' contributions to their archived anchor
@@ -84,7 +84,7 @@ export default {
 	    create_entry( archive_anchor );
 
 	    console.log("Creating link to Group Member Archive for: %s", pubkey );
-	    create_link( action_hash, archive_anchor_hash, LinkTypes.GroupMemberArchived, null );
+	    create_link( action_hash, archive_anchor_hash, LinkTypes.GroupMemberArchive, null );
 
 	    let creates			= get_links( anchor_hash, LinkTypes.Subject );
 	    let updates			= get_links( anchor_hash, LinkTypes.SubjectUpdate );
@@ -188,7 +188,7 @@ export default {
 	    });
 	});
 
-	const archived_agent_anchors	= get_links( latest_base, LinkTypes.GroupMemberArchived );
+	const archived_agent_anchors	= get_links( latest_base, LinkTypes.GroupMemberArchive );
 	archived_agent_anchors.forEach( link => {
 	    const agent_anchor_entry	= must_get_entry( link.target ).content
 		  .toEntryType( EntryTypes.GroupMemberArchiveAnchorEntry );

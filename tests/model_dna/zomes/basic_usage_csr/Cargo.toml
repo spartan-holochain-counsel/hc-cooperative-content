@@ -1,0 +1,14 @@
+[package]
+name = "basic_usage_csr"
+version = "0.0.0"
+edition = "2018"
+
+[lib]
+name = "basic_usage_csr"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+coop_content = { path = "../../../../zomes/coop_content" }
+coop_content_types = { path = "../../../../coop_content_types" }
+hdk = "0.3.0-beta-dev.2"
+serde = "1"

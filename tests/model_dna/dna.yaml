@@ -1,0 +1,15 @@
+manifest_version: "1"
+name: model_dna
+integrity:
+  origin_time: 2023-01-01T00:00:00.000000Z
+  uuid: 00000000-0000-0000-0000-000000000000
+  properties: ~
+  zomes:
+    - name: coop_content
+      bundled: ../../zomes/coop_content.wasm
+coordinator:
+  zomes:
+    - name: basic_usage
+      bundled: ./zomes/basic_usage_csr.wasm
+      dependencies:
+        - name: coop_content
