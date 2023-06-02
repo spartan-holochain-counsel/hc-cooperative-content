@@ -5,6 +5,7 @@ import fs				from 'node:fs';
 import path				from 'path';
 import crypto				from 'crypto';
 import { expect }			from 'chai';
+import json				from '@whi/json';
 import { AgentPubKey, HoloHash,
 	 ActionHash, EntryHash }	from '@whi/holo-hash';
 import HolochainBackdrop		from '@whi/holochain-backdrop';
@@ -35,26 +36,33 @@ function createGroupInput ( overrides ) {
 };
 
 
-let group_1;
+let group_1_id;
 
 function group_tests () {
 
     it("should create group profile", async function () {
-	this.timeout( 30_000 );
-
-	const group_id = group_1	= await clients.alice.call( DNA_NAME, MAIN_ZOME, "create_group", createGroupInput() );
-
+	const group_id = group_1_id	= await clients.alice.call( DNA_NAME, MAIN_ZOME, "create_group", createGroupInput() );
 	log.debug("Group ID: %s", group_id );
-	// log.debug( json.debug( group ) );
 
 	// expect( group_id		).to.be.a("ActionHash");
 	expect( group_id		).to.be.a("Uint8Array");
 	expect( group_id		).to.have.length( 39 );
+
+	const group			= await clients.alice.call( DNA_NAME, MAIN_ZOME, "get_group", group_id );
+	log.debug( json.debug( group ) );
     });
 
 }
 
+
 function errors_tests () {
+
+    it("should fail because record does not exist", async function () {
+	await expect_reject( async () => {
+	    await clients.alice.call( DNA_NAME, MAIN_ZOME, "get_group", new ActionHash(crypto.randomBytes(32)) );
+	}, "RecordNotFound" );
+    });
+
 }
 
 describe("Model DNA", () => {

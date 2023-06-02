@@ -1,10 +1,11 @@
 use lazy_static::lazy_static;
 use hdk::prelude::*;
 use coop_content_types::{
+    AppError,
     GroupEntry,
 };
 use coop_content::{
-    EntryTypes,
+    ScopedTypeConnector,
 };
 
 lazy_static! {
@@ -31,7 +32,23 @@ fn whoami(_: ()) -> ExternResult<AgentInfo> {
 #[hdk_extern]
 pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
     debug!("Creating new group entry: {:?}", group );
-    let action_hash = create_entry( EntryTypes::Group(group) )?;
+    let action_hash = create_entry( group.to_input() )?;
 
     Ok( action_hash )
+}
+
+
+#[hdk_extern]
+pub fn get_group(group_id: ActionHash) -> ExternResult<GroupEntry> {
+    debug!("Get latest group entry: {}", group_id );
+    let record = get( group_id.clone(), GetOptions::latest() )?
+	.ok_or(AppError::RecordNotFound(&group_id))?;
+
+    // We always expect the Record to be a
+    //
+    // - Create action
+    // - With an EntryType::App
+    // - That has an AppEntryDef matching the ScopedEntryDefIndex
+
+    Ok( GroupEntry::try_from_record( &record )? )
 }

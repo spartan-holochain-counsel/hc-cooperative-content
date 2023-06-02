@@ -2,6 +2,22 @@ use std::collections::BTreeMap;
 use hdi::prelude::*;
 use hdk::prelude::Path;
 
+//
+// Custom Errors
+//
+
+#[derive(Debug)]
+pub enum AppError<'a> {
+    RecordNotFound(&'a ActionHash),
+    RecordHasNoEntry(&'a ActionHash),
+}
+
+impl<'a> From<AppError<'a>> for WasmError {
+    fn from(error: AppError) -> Self {
+        wasm_error!(WasmErrorInner::Guest( format!("{:?}", error ) ))
+    }
+}
+
 
 
 // Trait for common fields
@@ -9,6 +25,23 @@ pub trait CommonFields<'a> {
     fn published_at(&'a self) -> &'a u64;
     fn last_updated(&'a self) -> &'a u64;
     fn metadata(&'a self) -> &'a BTreeMap<String, rmpv::Value>;
+}
+
+#[macro_export]
+macro_rules! common_fields {
+    ( $name:ident ) => {
+	impl<'a> CommonFields<'a> for $name {
+	    fn published_at(&'a self) -> &'a u64 {
+		&self.published_at
+	    }
+	    fn last_updated(&'a self) -> &'a u64 {
+		&self.last_updated
+	    }
+	    fn metadata(&'a self) -> &'a BTreeMap<String, rmpv::Value> {
+		&self.metadata
+	    }
+	}
+    };
 }
 
 
@@ -36,18 +69,7 @@ pub struct GroupEntry {
     pub last_updated: u64,
     pub metadata: BTreeMap<String, rmpv::Value>,
 }
-
-impl<'a> CommonFields<'a> for GroupEntry {
-    fn published_at(&'a self) -> &'a u64 {
-	&self.published_at
-    }
-    fn last_updated(&'a self) -> &'a u64 {
-	&self.last_updated
-    }
-    fn metadata(&'a self) -> &'a BTreeMap<String, rmpv::Value> {
-	&self.metadata
-    }
-}
+common_fields!( GroupEntry );
 
 
 
