@@ -11,4 +11,5 @@ crate-type = ["cdylib", "rlib"]
 coop_content = { path = "../../../../zomes/coop_content" }
 coop_content_types = { path = "../../../../coop_content_types" }
 hdk = "0.3.0-beta-dev.2"
+lazy_static = "1.4"
 serde = "1"

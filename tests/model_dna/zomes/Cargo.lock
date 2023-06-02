@@ -118,6 +118,7 @@ dependencies = [
  "coop_content",
  "coop_content_types",
  "hdk",
+ "lazy_static",
  "serde",
 ]
 

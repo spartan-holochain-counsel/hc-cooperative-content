@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use hdk::prelude::*;
 use coop_content_types::{
     GroupEntry,
@@ -6,11 +7,17 @@ use coop_content::{
     EntryTypes,
 };
 
+lazy_static! {
+    static ref ZOME_NAME: String = match zome_info() {
+	Ok(info) => format!("{}", info.name ),
+	Err(_) => String::from("?"),
+    };
+}
 
 
 #[hdk_extern]
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
-    debug!("'basic_usage_csr' init");
+    debug!("'{}' init", *ZOME_NAME );
     Ok(InitCallbackResult::Pass)
 }
 
