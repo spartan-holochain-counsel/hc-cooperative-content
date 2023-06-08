@@ -1,26 +1,60 @@
-mod macros;
-mod create_entry;
-mod update_entry;
-
 use hdi::prelude::*;
-use crate::{
-    // Macros
-    valid, // invalid,
-
-    // CommonFields,
-    EntryTypes,
-    LinkTypes,
+use hdi_extensions::{
+    ScopedTypeConnector, scoped_type_connector,
 };
+use coop_content_types::{
+    validate_content,
+    // validate_group_ref,
+    // validate_group_member,
+};
+pub use test_types::{
+    ContentEntry,
+};
+
+
+#[macro_export]
+macro_rules! valid {
+    () => {
+	return Ok(ValidateCallbackResult::Valid)
+    };
+}
+
+#[macro_export]
+macro_rules! invalid {
+    ( $message:expr ) => {
+	return Ok(ValidateCallbackResult::Invalid($message))
+    };
+}
+
+
+
+#[hdk_entry_defs]
+#[unit_enum(EntryTypesUnit)]
+pub enum EntryTypes {
+    #[entry_def]
+    Content(ContentEntry),
+}
+
+scoped_type_connector!(
+    EntryTypesUnit::Content,
+    EntryTypes::Content( ContentEntry )
+);
+
+
+#[hdk_link_types]
+pub enum LinkTypes {
+    Generic,
+}
 
 
 #[hdk_extern]
 fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
     match op.flattened::<EntryTypes, LinkTypes>()? {
 	FlatOp::StoreRecord(op_record) => match op_record {
-	    OpRecord::CreateEntry { app_entry, action } =>
-		create_entry::validation( app_entry, action ),
+	    // OpRecord::CreateEntry { app_entry, action } =>
+	    // 	create_entry::validation( app_entry, action ),
 	    OpRecord::UpdateEntry { app_entry, action, original_action_hash, original_entry_hash } =>
-		update_entry::validation( app_entry, action, original_action_hash, original_entry_hash ),
+		update_entry_validation( app_entry, action, original_action_hash, original_entry_hash ),
 	    // OpRecord::DeleteEntry { original_action_hash, original_entry_hash, action: delete },
 	    // OpRecord::CreateLink { base_address, target_address, tag, link_type, action: update_link },
 	    // OpRecord::DeleteLink { original_action_hash, base_address, action: delete_link },
@@ -46,5 +80,30 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 	// FlatOp::RegisterUpdate(op_update),
 	// FlatOp::RegisterDelete(op_delete),
 	_ => valid!(),
+    }
+}
+
+pub fn update_entry_validation(
+    app_entry: EntryTypes,
+    update: Update,
+    _original_action_hash: ActionHash,
+    _original_entry_hash: EntryHash
+) -> ExternResult<ValidateCallbackResult> {
+    match app_entry {
+	EntryTypes::Content(content) => {
+	    if let Err(message) = validate_content( &content, update ) {
+		invalid!(message)
+	    }
+
+	    // if let Err(message) = validate_group_ref( content.clone(), &original_entry_hash ) {
+	    // 	invalid!(message)
+	    // }
+
+	    // if let Err(message) = validate_group_member( &content, &update.author ) {
+	    // 	invalid!(message)
+	    // }
+
+	    valid!()
+	},
     }
 }

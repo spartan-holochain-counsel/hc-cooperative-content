@@ -118,8 +118,8 @@ console.log("C2aa update: %s", content_2aa_action.toString(true) );
 //   - Otherwise, A1 cannot change admins without countersigned entry
 // - An agent cannot create links off of another agent's anchor
 //   - eg. A2 cannot link off of [G1 + A1]
-// - Any agent cannot change the author group associated with content
-// - A content's author group cannot change using "Update", that is considered a new "Create"
+// - The author group associated with content cannot be changed
+//   - A content's author group cannot change using "Update", that is considered a new "Create"
 // - A content's author group revision must be related to the author group ID
 // - A1 cannot link off of a group revision to an agent anchor unless that agent is an authority in
 //   the group revision

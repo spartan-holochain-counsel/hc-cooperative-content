@@ -1,0 +1,15 @@
+[package]
+name = "basic_usage"
+version = "0.0.0"
+edition = "2018"
+
+[lib]
+name = "basic_usage"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+coop_content_types = { path = "../../../../coop_content_types" }
+hc_hdi_extensions = { path = "../../../../hdi_extensions" }
+hdi = "0.4.0-beta-dev.1"
+serde = "1"
+test_types = {path = "../../test_types"}

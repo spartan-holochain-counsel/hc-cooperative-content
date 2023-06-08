@@ -293,7 +293,19 @@ name = "coop_content"
 version = "0.0.0"
 dependencies = [
  "coop_content_types",
+ "hc_hdi_extensions",
  "hdi",
+ "serde",
+]
+
+[[package]]
+name = "coop_content_csr"
+version = "0.0.0"
+dependencies = [
+ "coop_content",
+ "coop_content_types",
+ "hc_hdk_extensions",
+ "hdk",
  "serde",
 ]
 
@@ -301,10 +313,12 @@ dependencies = [
 name = "coop_content_types"
 version = "0.1.0"
 dependencies = [
+ "hc_hdi_extensions",
  "hdi",
  "hdk",
  "rmpv",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -809,6 +823,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
  "ahash",
+]
+
+[[package]]
+name = "hc_hdi_extensions"
+version = "0.1.0"
+dependencies = [
+ "hdi",
+ "serde",
+]
+
+[[package]]
+name = "hc_hdk_extensions"
+version = "0.1.0"
+dependencies = [
+ "hc_hdi_extensions",
+ "hdk",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

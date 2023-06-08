@@ -1,20 +1,24 @@
 use std::collections::BTreeMap;
 use hdi::prelude::*;
 use hdk::prelude::Path;
+use thiserror::Error;
+use hdi_extensions::{
+    get_origin,
+};
+
 
 //
 // Custom Errors
 //
-
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AppError<'a> {
-    RecordNotFound(&'a ActionHash),
-    RecordHasNoEntry(&'a ActionHash),
+    #[error("Invalid group entry: {0}")]
+    InvalidGroup(&'a str),
 }
 
 impl<'a> From<AppError<'a>> for WasmError {
     fn from(error: AppError) -> Self {
-        wasm_error!(WasmErrorInner::Guest( format!("{:?}", error ) ))
+        wasm_error!(WasmErrorInner::Guest( format!("{}", error ) ))
     }
 }
 
@@ -47,15 +51,6 @@ macro_rules! common_fields {
 
 
 //
-// Path Entry
-//
-#[hdk_entry_helper]
-#[derive(Clone)]
-pub struct PathEntry( Path );
-
-
-
-//
 // Group Entry
 //
 #[hdk_entry_helper]
@@ -70,6 +65,24 @@ pub struct GroupEntry {
     pub metadata: BTreeMap<String, rmpv::Value>,
 }
 common_fields!( GroupEntry );
+
+impl GroupEntry {
+    pub fn authorities(&self) -> Vec<AgentPubKey> {
+	vec![ self.admins.clone(), self.members.clone() ]
+	    .into_iter()
+	    .flatten()
+	    .collect()
+    }
+}
+
+
+
+//
+// Path Entry
+//
+#[hdk_entry_helper]
+#[derive(Clone)]
+pub struct PathEntry( Path );
 
 
 
@@ -92,10 +105,111 @@ pub struct GroupMemberArchiveAnchorEntry( ActionHash, AgentPubKey, String );
 
 
 //
-// Content Entry
+// Content (not an entry type)
 //
-#[hdk_entry_helper]
-#[derive(Clone)]
-pub struct ContentEntry {
-    pub group_ref: ( ActionHash, ActionHash ),
+// #[hdk_entry_helper] // Helpers used for deserialization
+// #[derive(Clone)]
+// pub struct GroupRef {
+//     pub id: ActionHash,
+//     pub revision: ActionHash,
+// }
+pub trait GroupRef {
+    fn group_ref(&self) -> (ActionHash, ActionHash);
+}
+
+impl GroupRef for (ActionHash, ActionHash) {
+    fn group_ref(&self) -> (ActionHash, ActionHash) {
+	self.to_owned()
+    }
+}
+
+#[macro_export]
+macro_rules! group_ref {
+    ( $type:ident, $($ref:tt).* ) => {
+	impl coop_content_types::GroupRef for $type {
+	    fn group_ref(&self) -> (ActionHash, ActionHash) {
+		self$(.$ref)*.to_owned()
+	    }
+	}
+    };
+    ( $type:ident, $($id:tt).*, $($rev:tt).* ) => {
+	impl coop_content_types::GroupRef for $type {
+	    fn group_ref(&self) -> (ActionHash, ActionHash) {
+		(
+		    self$(.$id)*.to_owned(),
+		    self$(.$rev)*.to_owned()
+		)
+	    }
+	}
+    };
+}
+
+
+pub fn validate_content<T>(
+    entry: &T,
+    action: impl Into<EntryCreationAction>
+) -> Result<(), String>
+where
+    T: GroupRef + TryFrom<Entry, Error = WasmError> + Clone,
+{
+    let creation_action : EntryCreationAction = action.into();
+
+    validate_group_ref( entry, creation_action.clone() )?;
+    validate_group_member( entry, creation_action )?;
+
+    Ok(())
+}
+
+
+pub fn validate_group_ref<T>(
+    entry: &T,
+    action: impl Into<EntryCreationAction>
+) -> Result<(), String>
+where
+    T: GroupRef + TryFrom<Entry, Error = WasmError> + Clone,
+{
+    let group_ref = entry.group_ref();
+
+    if let EntryCreationAction::Update(update) = action.into() {
+	let prev_entry : T = must_get_entry( update.original_entry_address.to_owned() )?
+	    .content.try_into()?;
+	let prev_group_ref = prev_entry.group_ref();
+
+	if group_ref.0 != prev_group_ref.0 {
+	    return Err("Content group ID cannot be changed".to_string())?;
+	}
+    }
+
+    if group_ref.0 != get_origin( &group_ref.1 )?.0 {
+	return Err("Content group ID is not the initial action for the group revision".to_string())?;
+    }
+
+    Ok(())
+}
+
+
+pub fn validate_group_member<T>(
+    entry: &T,
+    action: impl Into<EntryCreationAction>
+) -> Result<(), String>
+where
+    T: GroupRef + TryFrom<Entry, Error = WasmError> + Clone,
+{
+    let creation_action : EntryCreationAction = action.into();
+    let author = creation_action.author();
+
+    let group_ref = entry.group_ref();
+    let signed_action = must_get_action( group_ref.1.to_owned() )?;
+    let group : GroupEntry = match signed_action.action().entry_hash() {
+	Some(entry_addr) => must_get_entry( entry_addr.to_owned() )?
+	    .content.try_into()?,
+	None => return Err(format!("Action ({}) does not contain an entry hash", group_ref.1 )),
+    };
+
+    // debug!("Checking authorities {:#?} for author {}", group.authorities(), author );
+    if !group.authorities().contains( author ) {
+	return Err(format!("Agent ({}) is not authorized to update content managed by group {}", author, group_ref.0 ))?;
+    }
+
+    Ok(())
 }

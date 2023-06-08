@@ -1,0 +1,16 @@
+[package]
+name = "coop_content_csr"
+version = "0.0.0"
+authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
+edition = "2018"
+
+[lib]
+name = "coop_content_csr"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+coop_content = {path = "../coop_content"}
+coop_content_types = { path = "../../coop_content_types" }
+hc_hdk_extensions = { path = "../../hdk_extensions" }
+hdk = "0.3.0-beta-dev.2"
+serde = "1"

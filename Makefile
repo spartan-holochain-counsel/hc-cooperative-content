@@ -3,9 +3,13 @@
 SHELL			= bash
 TARGET			= release
 TARGET_DIR		= target/wasm32-unknown-unknown/release
+SOURCE_FILES		= Makefile zomes/Cargo.* zomes/*/Cargo.toml zomes/*/src/*.rs \
+				coop_content_types/Cargo.toml coop_content_types/src/*.rs \
+				hdk_extensions/Cargo.toml hdk_extensions/src/*.rs
 
 # Zomes (WASM)
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
+COOP_CONTENT_CSR_WASM	= zomes/coop_content_csr.wasm
 
 
 #
@@ -24,12 +28,14 @@ clean:
 	    target
 
 rebuild:			clean build
-build:				$(COOP_CONTENT_WASM)
+build:				$(COOP_CONTENT_WASM) $(COOP_CONTENT_CSR_WASM)
 
 zomes/%.wasm:			zomes/$(TARGET_DIR)/%.wasm
+	@echo -e "\x1b[38;2mCopying WASM ($<) to 'zomes' directory: $@\x1b[0m"; \
 	cp $< $@
-zomes/$(TARGET_DIR)/%.wasm:	Makefile zomes/%/src/*.rs zomes/%/Cargo.toml *_types/* *_types/*/*
-	@echo "Building '$*' WASM: $@"; \
+zomes/$(TARGET_DIR)/%.wasm:	$(SOURCE_FILES)
+	rm -f zomes/$*.wasm
+	@echo -e "\x1b[37mBuilding zome '$*' -> $@\x1b[0m"; \
 	cd zomes; \
 	RUST_BACKTRACE=1 CARGO_TARGET_DIR=target cargo build --release \
 	    --target wasm32-unknown-unknown \
@@ -48,7 +54,7 @@ use-npm-backdrop:
 #
 # Testing
 #
-tests/%.dna:			FORCE
+tests/%.dna:			build FORCE
 	cd tests; make $*.dna
 test-setup:			tests/node_modules
 
