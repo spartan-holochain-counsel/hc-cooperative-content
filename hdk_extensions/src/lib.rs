@@ -25,6 +25,14 @@ impl<'a> From<HdkExtError<'a>> for WasmError {
 
 
 //
+// Agent
+//
+pub fn agent_id() -> ExternResult<AgentPubKey> {
+    Ok( agent_info()?.agent_initial_pubkey )
+}
+
+
+//
 // Unwrapped get methods
 //
 pub fn must_get(action: &ActionHash) -> ExternResult<Record> {

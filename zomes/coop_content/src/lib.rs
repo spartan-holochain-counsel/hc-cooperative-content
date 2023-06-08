@@ -11,8 +11,8 @@ pub use coop_content_types::{
 
     // Anchor entry types
     PathEntry,
-    GroupMemberAnchorEntry,
-    GroupMemberArchiveAnchorEntry,
+    GroupAuthAnchorEntry,
+    GroupAuthArchiveAnchorEntry,
 };
 
 
@@ -28,10 +28,10 @@ pub enum EntryTypes {
     Path(PathEntry),
 
     #[entry_def]
-    GroupMemberAnchor(GroupMemberAnchorEntry),
+    GroupAuthAnchor(GroupAuthAnchorEntry),
 
     #[entry_def]
-    GroupMemberArchiveAnchor(GroupMemberArchiveAnchorEntry),
+    GroupAuthArchiveAnchor(GroupAuthArchiveAnchorEntry),
 }
 
 scoped_type_connector!(
@@ -43,12 +43,12 @@ scoped_type_connector!(
     EntryTypes::Group( GroupEntry )
 );
 scoped_type_connector!(
-    EntryTypesUnit::GroupMemberAnchor,
-    EntryTypes::GroupMemberAnchor( GroupMemberAnchorEntry )
+    EntryTypesUnit::GroupAuthAnchor,
+    EntryTypes::GroupAuthAnchor( GroupAuthAnchorEntry )
 );
 scoped_type_connector!(
-    EntryTypesUnit::GroupMemberArchiveAnchor,
-    EntryTypes::GroupMemberArchiveAnchor( GroupMemberArchiveAnchorEntry )
+    EntryTypesUnit::GroupAuthArchiveAnchor,
+    EntryTypes::GroupAuthArchiveAnchor( GroupAuthArchiveAnchorEntry )
 );
 
 
@@ -56,8 +56,8 @@ scoped_type_connector!(
 #[hdk_link_types]
 pub enum LinkTypes {
     Group,
-    GroupMember,
-    GroupMemberArchive,
+    GroupAuth,
+    GroupAuthArchive,
     Content,
     ContentUpdate,
 }

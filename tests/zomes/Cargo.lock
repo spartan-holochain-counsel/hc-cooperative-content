@@ -312,6 +312,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
+name = "coop_content"
+version = "0.0.0"
+dependencies = [
+ "coop_content_types",
+ "hc_hdi_extensions",
+ "hdi",
+ "serde",
+]
+
+[[package]]
 name = "coop_content_types"
 version = "0.1.0"
 dependencies = [
@@ -340,6 +350,17 @@ dependencies = [
  "libc",
  "scopeguard",
  "windows-sys 0.33.0",
+]
+
+[[package]]
+name = "corrupt_csr"
+version = "0.0.0"
+dependencies = [
+ "coop_content",
+ "coop_content_types",
+ "hc_hdk_extensions",
+ "hdk",
+ "serde",
 ]
 
 [[package]]
@@ -539,6 +560,15 @@ dependencies = [
  "darling_core 0.20.1",
  "quote",
  "syn 2.0.18",
+]
+
+[[package]]
+name = "debug_csr"
+version = "0.0.0"
+dependencies = [
+ "hc_hdk_extensions",
+ "hdk",
+ "serde",
 ]
 
 [[package]]

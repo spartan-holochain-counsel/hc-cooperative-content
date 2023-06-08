@@ -3,7 +3,7 @@ use hdi::prelude::*;
 use hdk::prelude::Path;
 use thiserror::Error;
 use hdi_extensions::{
-    get_origin,
+    get_root_origin,
 };
 
 
@@ -82,7 +82,7 @@ impl GroupEntry {
 //
 #[hdk_entry_helper]
 #[derive(Clone)]
-pub struct PathEntry( Path );
+pub struct PathEntry( pub Path );
 
 
 
@@ -91,7 +91,7 @@ pub struct PathEntry( Path );
 //
 #[hdk_entry_helper]
 #[derive(Clone)]
-pub struct GroupMemberAnchorEntry( ActionHash, AgentPubKey );
+pub struct GroupAuthAnchorEntry( pub ActionHash, pub AgentPubKey );
 
 
 
@@ -100,19 +100,13 @@ pub struct GroupMemberAnchorEntry( ActionHash, AgentPubKey );
 //
 #[hdk_entry_helper]
 #[derive(Clone)]
-pub struct GroupMemberArchiveAnchorEntry( ActionHash, AgentPubKey, String );
+pub struct GroupAuthArchiveAnchorEntry( pub ActionHash, pub AgentPubKey, pub String );
 
 
 
 //
-// Content (not an entry type)
+// A trait for determining a group state
 //
-// #[hdk_entry_helper] // Helpers used for deserialization
-// #[derive(Clone)]
-// pub struct GroupRef {
-//     pub id: ActionHash,
-//     pub revision: ActionHash,
-// }
 pub trait GroupRef {
     fn group_ref(&self) -> (ActionHash, ActionHash);
 }
@@ -145,7 +139,7 @@ macro_rules! group_ref {
 }
 
 
-pub fn validate_content<T>(
+pub fn validate_group_auth<T>(
     entry: &T,
     action: impl Into<EntryCreationAction>
 ) -> Result<(), String>
@@ -180,7 +174,7 @@ where
 	}
     }
 
-    if group_ref.0 != get_origin( &group_ref.1 )?.0 {
+    if group_ref.0 != get_root_origin( &group_ref.1 )?.0 {
 	return Err("Content group ID is not the initial action for the group revision".to_string())?;
     }
 

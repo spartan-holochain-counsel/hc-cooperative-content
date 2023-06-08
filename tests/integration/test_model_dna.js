@@ -27,8 +27,11 @@ const TEST_DNA_PATH			= path.join( __dirname, "../model_dna.dna" );
 
 const clients				= {};
 const DNA_NAME				= "test_dna";
-const MAIN_ZOME				= "basic_usage_csr";
+
+const DEBUG_ZOME			= "debug_csr";
 const COOP_ZOME				= "coop_content_csr";
+const GOOD_ZOME				= "basic_usage_csr";
+const EVIL_ZOME				= "corrupt_csr";
 
 
 const EntryCreationActionStruct		= {
@@ -131,29 +134,26 @@ function phase1_tests () {
     });
 
     it("should create content (C1 + C2) via alice (A1)", async function () {
-	try {
+	{
 	    const content_input		= createContentInput( clients.alice.cellAgent(), group_1_id, group_1_id );
-	    c1_addr			= await clients.alice.call( DNA_NAME, MAIN_ZOME, "create_content", content_input );
+	    c1_addr			= await clients.alice.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
 	    log.debug("C1 Address: %s", c1_addr );
 
 	    expect( c1_addr		).to.be.a("Uint8Array");
 	    expect( c1_addr		).to.have.length( 39 );
 
-	    c1				= intoStruct( await clients.alice.call( DNA_NAME, MAIN_ZOME, "get_content", c1_addr ), ContentStruct );
+	    c1				= intoStruct( await clients.alice.call( DNA_NAME, GOOD_ZOME, "get_content", c1_addr ), ContentStruct );
 	    log.debug( json.debug( c1 ) );
-	} catch (err) {
-	    console.log(err.data);
-	    throw err;
 	}
 	{
 	    const content_input		= createContentInput( clients.alice.cellAgent(), group_1_id, group_1_id );
-	    c2_addr			= await clients.alice.call( DNA_NAME, MAIN_ZOME, "create_content", content_input );
+	    c2_addr			= await clients.alice.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
 	    log.debug("C2 Address: %s", c2_addr );
 
 	    expect( c2_addr		).to.be.a("Uint8Array");
 	    expect( c2_addr		).to.have.length( 39 );
 
-	    c2				= intoStruct( await clients.alice.call( DNA_NAME, MAIN_ZOME, "get_content", c2_addr ), ContentStruct );
+	    c2				= intoStruct( await clients.alice.call( DNA_NAME, GOOD_ZOME, "get_content", c2_addr ), ContentStruct );
 	    log.debug( json.debug( c2 ) );
 	}
     });
@@ -161,20 +161,20 @@ function phase1_tests () {
     it("should create content (C3) via bobby (A2)", async function () {
 	{
 	    const content_input		= createContentInput( clients.bobby.cellAgent(), group_1_id, group_1_id );
-	    c3_addr			= await clients.bobby.call( DNA_NAME, MAIN_ZOME, "create_content", content_input );
+	    c3_addr			= await clients.bobby.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
 	    log.debug("C3 Address: %s", c3_addr );
 
 	    expect( c3_addr		).to.be.a("Uint8Array");
 	    expect( c3_addr		).to.have.length( 39 );
 
-	    c3				= intoStruct( await clients.alice.call( DNA_NAME, MAIN_ZOME, "get_content", c3_addr ), ContentStruct );
+	    c3				= intoStruct( await clients.alice.call( DNA_NAME, GOOD_ZOME, "get_content", c3_addr ), ContentStruct );
 	    log.debug( json.debug( c3 ) );
 	}
     });
 
     it("should update content (C1 => C1a) via bobby (A2)", async function () {
 	{
-	    c1a_addr			= await clients.bobby.call( DNA_NAME, MAIN_ZOME, "update_content", {
+	    c1a_addr			= await clients.bobby.call( DNA_NAME, GOOD_ZOME, "update_content", {
 		"base": c1_addr,
 		"entry": Object.assign( c1, {
 		    "text":		"(updated) " + faker.lorem.sentence(),
@@ -189,7 +189,7 @@ function phase1_tests () {
 
     it("should update content (C2 => C2a) via alice (A1)", async function () {
 	{
-	    c2a_addr			= await clients.alice.call( DNA_NAME, MAIN_ZOME, "update_content", {
+	    c2a_addr			= await clients.alice.call( DNA_NAME, GOOD_ZOME, "update_content", {
 		"base": c2_addr,
 		"entry": Object.assign( c2, {
 		    "text":		"(updated) " + faker.lorem.sentence(),
@@ -219,11 +219,19 @@ function phase1_checks_tests () {
 	}, "requires counter-signing" ); // group admins cannot be changed without counter-signing
     });
 
-    it("should reject content link because author does not match member anchor agent");
+    it("should reject content link because author does not match auth anchor agent", async function () {
+	await expect_reject( async () => {
+	    await clients.bobby.call( DNA_NAME, EVIL_ZOME, "invalid_auth_anchor_link", {
+		"group_id": group_1_id,
+		"anchor_agent": clients.alice.cellAgent(),
+		"target": new ActionHash( crypto.randomBytes(32) ),
+	    });
+	}, "link based on an auth anchor can only be made by the matching agent" );
+    });
 
     it("should reject content update because the author group cannot be changed", async function () {
 	await expect_reject( async () => {
-	    await clients.alice.call( DNA_NAME, MAIN_ZOME, "update_content", {
+	    await clients.alice.call( DNA_NAME, GOOD_ZOME, "update_content", {
 		"base": c1_addr,
 		"entry": Object.assign({}, c1, {
 		    "group_ref": {
@@ -241,7 +249,7 @@ function phase1_checks_tests () {
 	    clients.carol.cellAgent(),
 	));
 	await expect_reject( async () => {
-	    await clients.bobby.call( DNA_NAME, MAIN_ZOME, "update_content", {
+	    await clients.bobby.call( DNA_NAME, GOOD_ZOME, "update_content", {
 		"base": c1_addr,
 		"entry": Object.assign({}, c1, {
 		    "group_ref": {
@@ -253,7 +261,7 @@ function phase1_checks_tests () {
 	}, "group ID is not the initial action for the group revision" );
     });
 
-    it("should reject member anchor link because agent (A3) is not a group authority");
+    it("should reject auth anchor link because agent (A3) is not a group authority");
 
     // Dynamic
     it("should reject group update because agent (A2) is not an admin", async function () {
@@ -267,7 +275,7 @@ function phase1_checks_tests () {
 
     it("should reject content update because agent is not a group authority", async function () {
 	await expect_reject( async () => {
-	    await clients.carol.call( DNA_NAME, MAIN_ZOME, "update_content", {
+	    await clients.carol.call( DNA_NAME, GOOD_ZOME, "update_content", {
 		"base": c1_addr,
 		"entry": Object.assign({}, c1, {
 		    "text":		"(updated) " + faker.lorem.sentence(),
@@ -276,7 +284,7 @@ function phase1_checks_tests () {
 	}, "not authorized to update content managed by group" );
     });
 
-    it("should reject member anchor link because agent (A2) is not an admin");
+    it("should reject auth anchor link because agent (A2) is not an admin");
 
 }
 
@@ -308,7 +316,7 @@ function phase2_checks_tests () {
 
     // Dynamic
     it("should reject archive content link because agent is not an admin");
-    it("should reject member anchor link because agent (A2 + A3) is not an admin");
+    it("should reject auth anchor link because agent (A2 + A3) is not an admin");
     it("should reject content update because agent (A3) did not update the author group revision");
     it("should reject content update because agent (A2) is not an authority in the author group revision");
 
@@ -331,7 +339,7 @@ function phase3_checks_tests () {
 function general_tests () {
 
     it("should trace origin", async function () {
-	const result			= await clients.alice.call( DNA_NAME, MAIN_ZOME, "trace_origin", group_1a_addr );
+	const result			= await clients.alice.call( DNA_NAME, DEBUG_ZOME, "trace_origin", group_1a_addr );
 	const history			= result.map( ([addr, action]) => [ new ActionHash(addr), intoStruct( action, EntryCreationActionStruct ) ]);
 	log.debug("Group history: %s", json.debug( history ) );
 
@@ -339,7 +347,7 @@ function general_tests () {
     });
 
     it("should trace evolutions using group authorities", async function () {
-	const result			= await clients.alice.call( DNA_NAME, MAIN_ZOME, "trace_evolutions_using_authorities", {
+	const result			= await clients.alice.call( DNA_NAME, DEBUG_ZOME, "trace_evolutions_using_authorities", {
 	    "content_id": group_1_id,
 	    "authorities": [ ...group.admins, ...group.members ],
 	});
@@ -368,11 +376,11 @@ describe("Model DNA", function () {
     });
 
     before(async function () {
-	this.timeout( 60_000 );
+	this.timeout( 300_000 );
 
 	const actors			= await holochain.backdrop({
 	    "test_happ": {
-		[DNA_NAME]:	TEST_DNA_PATH,
+		[DNA_NAME]:		TEST_DNA_PATH,
 	    },
 	}, {
 	    "actors": [
@@ -394,7 +402,7 @@ describe("Model DNA", function () {
 
 	// Must call whoami on each cell to ensure that init has finished.
 	{
-	    let whoami			= await clients.alice.call( DNA_NAME, MAIN_ZOME, "whoami", null, 30_000 );
+	    let whoami			= await clients.alice.call( DNA_NAME, GOOD_ZOME, "whoami", null, 300_000 );
 	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
 	}
     });

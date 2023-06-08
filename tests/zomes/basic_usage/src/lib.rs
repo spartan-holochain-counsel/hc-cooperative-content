@@ -2,29 +2,16 @@ use hdi::prelude::*;
 use hdi_extensions::{
     ScopedTypeConnector, scoped_type_connector,
 };
+pub use hdi_extensions::{
+    // Macros
+    valid, invalid,
+};
 use coop_content_types::{
-    validate_content,
-    // validate_group_ref,
-    // validate_group_member,
+    validate_group_auth,
 };
 pub use test_types::{
     ContentEntry,
 };
-
-
-#[macro_export]
-macro_rules! valid {
-    () => {
-	return Ok(ValidateCallbackResult::Valid)
-    };
-}
-
-#[macro_export]
-macro_rules! invalid {
-    ( $message:expr ) => {
-	return Ok(ValidateCallbackResult::Invalid($message))
-    };
-}
 
 
 
@@ -91,17 +78,9 @@ pub fn update_entry_validation(
 ) -> ExternResult<ValidateCallbackResult> {
     match app_entry {
 	EntryTypes::Content(content) => {
-	    if let Err(message) = validate_content( &content, update ) {
+	    if let Err(message) = validate_group_auth( &content, update ) {
 		invalid!(message)
 	    }
-
-	    // if let Err(message) = validate_group_ref( content.clone(), &original_entry_hash ) {
-	    // 	invalid!(message)
-	    // }
-
-	    // if let Err(message) = validate_group_member( &content, &update.author ) {
-	    // 	invalid!(message)
-	    // }
 
 	    valid!()
 	},

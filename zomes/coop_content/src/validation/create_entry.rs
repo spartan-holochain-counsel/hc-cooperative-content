@@ -1,14 +1,10 @@
 use hdi::prelude::*;
-// use hdi_extensions::{
-//     trace_origin,
-// };
-use crate::{
+use hdi_extensions::{
     // Macros
     valid, invalid,
-
-    // CommonFields,
+};
+use crate::{
     EntryTypes,
-    // LinkTypes,
 };
 
 pub fn validation(
@@ -21,6 +17,9 @@ pub fn validation(
 		invalid!("The author of a group entry must be an admin of the group".to_string())
 	    }
 
+	    valid!()
+	},
+	EntryTypes::GroupAuthAnchor(_anchor) => {
 	    valid!()
 	},
 	_ => invalid!(format!("Create validation not implemented for entry type: {:#?}", create.entry_type )),

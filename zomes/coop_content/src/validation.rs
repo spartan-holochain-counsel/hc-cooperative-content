@@ -1,13 +1,13 @@
-mod macros;
 mod create_entry;
 mod update_entry;
+mod create_link;
 
 use hdi::prelude::*;
-use crate::{
+use hdi_extensions::{
     // Macros
-    valid, // invalid,
-
-    // CommonFields,
+    valid,
+};
+use crate::{
     EntryTypes,
     LinkTypes,
 };
@@ -22,7 +22,8 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 	    OpRecord::UpdateEntry { app_entry, action, original_action_hash, original_entry_hash } =>
 		update_entry::validation( app_entry, action, original_action_hash, original_entry_hash ),
 	    // OpRecord::DeleteEntry { original_action_hash, original_entry_hash, action: delete },
-	    // OpRecord::CreateLink { base_address, target_address, tag, link_type, action: update_link },
+	    OpRecord::CreateLink { base_address, target_address, tag, link_type, action } =>
+		create_link::validation( base_address, target_address, link_type, tag, action ),
 	    // OpRecord::DeleteLink { original_action_hash, base_address, action: delete_link },
 	    // OpRecord::CreateAgent { agent, action: create },
 	    // OpRecord::UpdateAgent { original_key, new_key, original_action_hash, action: update },

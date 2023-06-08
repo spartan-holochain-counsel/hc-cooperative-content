@@ -1,14 +1,10 @@
 use hdi::prelude::*;
-// use hdi_extensions::{
-//     trace_origin,
-// };
-use crate::{
+use hdi_extensions::{
     // Macros
     valid, invalid,
-
-    // CommonFields,
+};
+use crate::{
     EntryTypes,
-    // LinkTypes,
     GroupEntry,
 };
 

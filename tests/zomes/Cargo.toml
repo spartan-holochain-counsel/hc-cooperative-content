@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "debug_csr",
   "basic_usage",
   "basic_usage_csr",
+  "corrupt_csr",
 ]

@@ -2,20 +2,32 @@ use hdk::prelude::*;
 use hdk_extensions::{
     must_get,
     trace_evolutions,
+    agent_id,
 
     // HDI Extensions
     ScopedTypeConnector,
 };
 use coop_content::{
     GroupEntry,
+    GroupAuthAnchorEntry,
+    LinkTypes,
 };
-
 
 
 #[hdk_extern]
 pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
     debug!("Creating new group entry: {:#?}", group );
     let action_hash = create_entry( group.to_input() )?;
+    let agent_id = agent_id()?;
+
+    for pubkey in group.authorities() {
+	let anchor = GroupAuthAnchorEntry( action_hash.to_owned(), pubkey );
+	create_entry( anchor.to_input() )?;
+	let anchor_hash = hash_entry( anchor )?;
+	create_link( action_hash.to_owned(), anchor_hash, LinkTypes::GroupAuth, () )?;
+    }
+
+    create_link( agent_id, action_hash.to_owned(), LinkTypes::Group, () )?;
 
     Ok( action_hash )
 }

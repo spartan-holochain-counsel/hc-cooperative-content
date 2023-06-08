@@ -1,3 +1,5 @@
+mod macros;
+
 use hdi::prelude::*;
 
 
@@ -38,7 +40,7 @@ pub fn trace_origin(action_address: &ActionHash) -> ExternResult<Vec<(ActionHash
     Ok( history )
 }
 
-pub fn get_origin(action_address: &ActionHash) -> ExternResult<(ActionHash, Action)> {
+pub fn get_root_origin(action_address: &ActionHash) -> ExternResult<(ActionHash, Action)> {
     Ok( trace_origin( action_address )?.last().unwrap().to_owned() )
 }
 

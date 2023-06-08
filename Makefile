@@ -69,10 +69,11 @@ test-integration:		test-setup test-model
 test-integration-debug:		test-setup test-model-debug
 
 MODEL_DNA			= tests/model_dna.dna
+TEST_DNAS			= $(MODEL_DNA)
 
-test-model:			test-setup build $(MODEL_DNA)
+test-model:			test-setup build $(TEST_DNAS)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_model_dna.js
-test-model-debug:		test-setup build $(MODEL_DNA)
+test-model-debug:		test-setup build $(TEST_DNAS)
 	cd tests; RUST_LOG=info LOG_LEVEL=trace npx mocha integration/test_model_dna.js
 
 
