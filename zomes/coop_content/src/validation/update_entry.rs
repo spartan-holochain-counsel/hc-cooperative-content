@@ -1,4 +1,5 @@
 use hdi::prelude::*;
+use hdk::prelude::debug;
 use hdi_extensions::{
     // Macros
     valid, invalid,
@@ -16,6 +17,7 @@ pub fn validation(
 ) -> ExternResult<ValidateCallbackResult> {
     match app_entry {
 	EntryTypes::Group(group) => {
+	    debug!("Checking update EntryTypes::Group({:#?})", group );
 	    let prev_group : GroupEntry = must_get_entry( original_entry_hash )?.content.try_into()?;
 
 	    if !prev_group.admins.contains( &update.author ) {

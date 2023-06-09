@@ -1,4 +1,5 @@
 use hdi::prelude::*;
+use hdk::prelude::debug;
 use hdi_extensions::{
     ScopedTypeConnector, scoped_type_connector,
 };
@@ -78,6 +79,7 @@ pub fn update_entry_validation(
 ) -> ExternResult<ValidateCallbackResult> {
     match app_entry {
 	EntryTypes::Content(content) => {
+	    debug!("Checking EntryTypes::Content({:#?})", content );
 	    if let Err(message) = validate_group_auth( &content, update ) {
 		invalid!(message)
 	    }

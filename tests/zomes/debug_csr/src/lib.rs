@@ -4,6 +4,7 @@ use hdk::prelude::*;
 
 #[hdk_extern]
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
+    debug!("'{}' init", zome_info()?.name );
     Ok(InitCallbackResult::Pass)
 }
 

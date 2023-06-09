@@ -1,4 +1,3 @@
-use lazy_static::lazy_static;
 use hdk::prelude::*;
 use hdk_extensions::{
     must_get,
@@ -12,17 +11,10 @@ use basic_usage::{
     ContentEntry,
 };
 
-lazy_static! {
-    static ref ZOME_NAME: String = match zome_info() {
-	Ok(info) => format!("{}", info.name ),
-	Err(_) => String::from("?"),
-    };
-}
-
 
 #[hdk_extern]
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
-    debug!("'{}' init", *ZOME_NAME );
+    debug!("'{}' init", zome_info()?.name );
     Ok(InitCallbackResult::Pass)
 }
 

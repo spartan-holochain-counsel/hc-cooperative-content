@@ -261,7 +261,15 @@ function phase1_checks_tests () {
 	}, "group ID is not the initial action for the group revision" );
     });
 
-    it("should reject auth anchor link because agent (A3) is not a group authority");
+    it("should reject auth anchor link because agent (A3) is not a group authority", async function () {
+	await expect_reject( async () => {
+	    await clients.alice.call( DNA_NAME, EVIL_ZOME, "invalid_group_auth_link", {
+		"group_id": group_1_id,
+		"group_rev": group_1_id,
+		"anchor_agent": clients.carol.cellAgent(),
+	    });
+	}, "group auth anchors must match an authority in the group revision" );
+    });
 
     // Dynamic
     it("should reject group update because agent (A2) is not an admin", async function () {

@@ -3,7 +3,7 @@
 SHELL			= bash
 TARGET			= release
 TARGET_DIR		= target/wasm32-unknown-unknown/release
-SOURCE_FILES		= Makefile zomes/Cargo.* zomes/*/Cargo.toml zomes/*/src/*.rs \
+SOURCE_FILES		= Makefile zomes/Cargo.* zomes/*/Cargo.toml zomes/*/src/*.rs zomes/*/src/*/* \
 				coop_content_types/Cargo.toml coop_content_types/src/*.rs \
 				hdk_extensions/Cargo.toml hdk_extensions/src/*.rs
 

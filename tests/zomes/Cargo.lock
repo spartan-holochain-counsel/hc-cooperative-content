@@ -118,6 +118,7 @@ dependencies = [
  "coop_content_types",
  "hc_hdi_extensions",
  "hdi",
+ "hdk",
  "serde",
  "test_types",
 ]
@@ -129,7 +130,6 @@ dependencies = [
  "basic_usage",
  "hc_hdk_extensions",
  "hdk",
- "lazy_static",
  "serde",
  "test_types",
 ]
@@ -318,6 +318,7 @@ dependencies = [
  "coop_content_types",
  "hc_hdi_extensions",
  "hdi",
+ "hdk",
  "serde",
 ]
 
@@ -357,7 +358,6 @@ name = "corrupt_csr"
 version = "0.0.0"
 dependencies = [
  "coop_content",
- "coop_content_types",
  "hc_hdk_extensions",
  "hdk",
  "serde",

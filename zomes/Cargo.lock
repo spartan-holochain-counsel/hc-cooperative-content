@@ -295,6 +295,7 @@ dependencies = [
  "coop_content_types",
  "hc_hdi_extensions",
  "hdi",
+ "hdk",
  "serde",
 ]
 
@@ -306,6 +307,7 @@ dependencies = [
  "coop_content_types",
  "hc_hdk_extensions",
  "hdk",
+ "lazy_static",
  "serde",
 ]
 
