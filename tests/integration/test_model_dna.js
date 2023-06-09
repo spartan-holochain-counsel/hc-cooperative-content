@@ -292,7 +292,15 @@ function phase1_checks_tests () {
 	}, "not authorized to update content managed by group" );
     });
 
-    it("should reject auth anchor link because agent (A2) is not an admin");
+    it("should reject auth anchor link because agent (A2) is not an admin", async function () {
+	await expect_reject( async () => {
+	    await clients.bobby.call( DNA_NAME, EVIL_ZOME, "invalid_group_auth_link", {
+		"group_id": group_1_id,
+		"group_rev": group_1_id,
+		"anchor_agent": clients.alice.cellAgent(),
+	    });
+	}, "author of a group auth link must be an admin of the base group" );
+    });
 
 }
 

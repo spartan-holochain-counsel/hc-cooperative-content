@@ -46,7 +46,7 @@ pub fn validation(
 	    let group : GroupEntry = must_get_valid_record( group_action_hash )?.try_into()?;
 
 	    if !group.admins.contains( &create.author ) {
-		invalid!("The author of a group auth link must be an admin of the group".to_string())
+		invalid!("The author of a group auth link must be an admin of the base group".to_string())
 	    }
 
 	    let anchor_entry_hash = match target_address.to_owned().into_entry_hash() {
