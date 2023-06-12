@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use hdi::prelude::*;
 use hdk::prelude::Path;
+// use hdk::hash_path::path::{ Component };
 use thiserror::Error;
 use hdi_extensions::{
     get_root_origin,
@@ -73,6 +74,36 @@ impl GroupEntry {
 	    .flatten()
 	    .collect()
     }
+
+    pub fn authorities_diff(&self, other: &GroupEntry) -> AuthoritiesDiff {
+	let added: Vec<AgentPubKey> = other.authorities()
+	    .into_iter()
+	    .filter(|pubkey| !self.authorities().contains(pubkey))
+	    .collect();
+
+	let removed: Vec<AgentPubKey> = self.authorities()
+	    .into_iter()
+	    .filter(|pubkey| !other.authorities().contains(pubkey))
+	    .collect();
+
+	let intersection: Vec<AgentPubKey> = self.authorities()
+	    .into_iter()
+	    .filter(|pubkey| other.authorities().contains(pubkey))
+	    .collect();
+
+	AuthoritiesDiff {
+	    added,
+	    removed,
+	    intersection,
+	}
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AuthoritiesDiff {
+    pub added: Vec<AgentPubKey>,
+    pub removed: Vec<AgentPubKey>,
+    pub intersection: Vec<AgentPubKey>,
 }
 
 
@@ -100,7 +131,56 @@ pub struct GroupAuthAnchorEntry( pub ActionHash, pub AgentPubKey );
 //
 #[hdk_entry_helper]
 #[derive(Clone)]
-pub struct GroupAuthArchiveAnchorEntry( pub ActionHash, pub AgentPubKey, pub String );
+pub struct GroupAuthArchiveAnchorEntry( pub ActionHash, pub AgentPubKey, String );
+
+impl GroupAuthArchiveAnchorEntry {
+    pub fn new(group_id: ActionHash, agent: AgentPubKey) -> Self {
+	GroupAuthArchiveAnchorEntry(group_id, agent, "archive".to_string())
+    }
+}
+
+
+#[hdk_entry_helper]
+#[serde(untagged)]
+#[derive(Clone)]
+pub enum GroupAuthAnchor {
+    Active(GroupAuthAnchorEntry),
+    Archive(GroupAuthArchiveAnchorEntry),
+}
+
+impl GroupAuthAnchor {
+    pub fn is_archive(&self) -> bool {
+	match &self {
+	    GroupAuthAnchor::Active(_) => false,
+	    GroupAuthAnchor::Archive(_) => true,
+	}
+    }
+
+    pub fn author(&self) -> &AgentPubKey {
+	match &self {
+	    GroupAuthAnchor::Active(anchor) => &anchor.1,
+	    GroupAuthAnchor::Archive(anchor) => &anchor.1,
+	}
+    }
+}
+
+
+
+//
+// CSR Input Structs
+//
+#[derive(Clone, Deserialize, Debug)]
+pub struct UpdateInput {
+    pub base: ActionHash,
+    pub entry: GroupEntry,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CreateContentLinkInput {
+    pub group_id: ActionHash,
+    pub author: AgentPubKey,
+    pub target: AnyDhtHash,
+}
 
 
 

@@ -1,5 +1,5 @@
 use hdk::prelude::*;
-// use hdk::hash_path::path::{ Component };
+use holo_hash::AnyDhtHashPrimitive;
 pub use hdi_extensions::*;
 use thiserror::Error;
 
@@ -10,7 +10,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum HdkExtError<'a> {
     #[error("Record not found @ address {0}")]
-    RecordNotFound(&'a ActionHash),
+    RecordNotFound(&'a AnyDhtHash),
     #[error("No entry in record ({0})")]
     RecordHasNoEntry(&'a ActionHash),
     #[error("Expected an action hash, not an entry hash: {0}")]
@@ -24,6 +24,7 @@ impl<'a> From<HdkExtError<'a>> for WasmError {
 }
 
 
+
 //
 // Agent
 //
@@ -32,26 +33,50 @@ pub fn agent_id() -> ExternResult<AgentPubKey> {
 }
 
 
+
 //
-// Unwrapped get methods
+// Get Helpers
 //
-pub fn must_get(action: &ActionHash) -> ExternResult<Record> {
+pub fn must_get<T>(addr: &T) -> ExternResult<Record>
+where
+    T: Into<AnyDhtHash> + Clone + std::fmt::Debug,
+{
+    let addr : AnyDhtHash = addr.to_owned().into();
     Ok(
-	get( action.to_owned(), GetOptions::latest() )?
-	    .ok_or(HdkExtError::RecordNotFound(action))?
+	match addr.clone().into_primitive() {
+	    AnyDhtHashPrimitive::Entry(entry_hash) => {
+		get( entry_hash.clone(), GetOptions::latest() )?
+		    .ok_or(HdkExtError::RecordNotFound(&addr))?
+	    },
+	    AnyDhtHashPrimitive::Action(action_hash) => {
+		get( action_hash.clone(), GetOptions::latest() )?
+		    .ok_or(HdkExtError::RecordNotFound(&addr))?
+	    },
+	}
     )
 }
 
 
 pub fn must_get_details(action: &ActionHash) -> ExternResult<RecordDetails> {
     let details = get_details( action.to_owned(), GetOptions::latest() )?
-	.ok_or(HdkExtError::RecordNotFound(action))?;
+	.ok_or(HdkExtError::RecordNotFound(&action.to_owned().into()))?;
 
     match details {
 	Details::Record(record_details) => Ok( record_details ),
 	Details::Entry(_) => Err(HdkExtError::ExpectedRecordNotEntry(action))?,
     }
 }
+
+
+pub fn exists<T>(addr: &T) -> ExternResult<bool>
+where
+    T: Clone + std::fmt::Debug,
+    AnyDhtHash: From<T>,
+{
+    debug!("Checking if entry {:?} exists", addr );
+    Ok( get( addr.to_owned(), GetOptions::content() )?.is_some() )
+}
+
 
 
 //
@@ -78,33 +103,90 @@ pub fn trace_evolutions (action_address: &ActionHash) -> ExternResult<Vec<Action
 }
 
 
-pub fn trace_evolutions_using_authorities (action_address: &ActionHash, authors: &Vec<AgentPubKey>) -> ExternResult<Vec<ActionHash>> {
+pub fn latest_evolution(action_address: &ActionHash) -> ExternResult<ActionHash> {
+    let evolutions = trace_evolutions( action_address )?;
+
+    Ok( evolutions.last().unwrap().to_owned() )
+}
+
+
+pub fn trace_evolutions_selector<F>(
+    action_address: &ActionHash,
+    selector: F
+) -> ExternResult<Vec<ActionHash>>
+where
+    F: Fn(Vec<SignedHashed<Action>>) -> ExternResult<Option<ActionHash>>,
+{
     let mut evolutions = vec![];
     let mut next_addr = Some(action_address.to_owned());
 
     while let Some(addr) = next_addr {
 	let details = must_get_details( &addr )?;
-	let valid_updates: Vec<SignedHashed<Action>> = details.updates.iter()
-	    .filter_map(|sa| {
-		debug!("Checking authorities for author '{}': {:?}", sa.action().author(), authors );
-		if authors.contains(sa.action().author()) {
-		    Some(sa.to_owned())
-		} else {
-		    None
-		}
-	    })
-	    .collect();
-	debug!("Filtered {}/{} updates", details.updates.len() - valid_updates.len(), details.updates.len() );
-	let maybe_next_update = valid_updates.iter()
-	    .min_by_key(|sa| sa.action().timestamp() );
-
-	next_addr = match maybe_next_update {
-	    Some(signed_action) => Some(signed_action.hashed.hash.to_owned()),
-	    None => None,
-	};
+	next_addr = selector( details.updates )?;
 
 	evolutions.push( addr );
     }
+
+    Ok( evolutions )
+}
+
+
+pub fn trace_evolutions_using_authorities(
+    action_address: &ActionHash,
+    authors: &Vec<AgentPubKey>
+) -> ExternResult<Vec<ActionHash>> {
+    let evolutions = trace_evolutions_selector( action_address, |updates| {
+	let updates_count = updates.len();
+	let valid_updates : Vec<SignedHashed<Action>> = updates
+	    .into_iter()
+	    .filter(|sa| {
+		debug!("Checking authorities for author '{}': {:?}", sa.action().author(), authors );
+		authors.contains( sa.action().author() )
+	    })
+	    .collect();
+
+	debug!("Filtered {}/{} updates", updates_count - valid_updates.len(), updates_count );
+	let maybe_next_update = valid_updates.iter()
+	    .min_by_key(|sa| sa.action().timestamp() );
+
+	Ok(
+	    match maybe_next_update {
+		Some(signed_action) => Some(signed_action.hashed.hash.to_owned()),
+		None => None,
+	    }
+	)
+    })?;
+
+    Ok( evolutions )
+}
+
+
+pub fn trace_evolutions_using_authorities_with_exceptions(
+    action_address: &ActionHash,
+    authors: &Vec<AgentPubKey>,
+    exceptions: &Vec<ActionHash>
+) -> ExternResult<Vec<ActionHash>> {
+    let evolutions = trace_evolutions_selector( action_address, |updates| {
+	let updates_count = updates.len();
+	let valid_updates : Vec<SignedHashed<Action>> = updates
+	    .into_iter()
+	    .filter(|sa| {
+		debug!("Checking authorities for author '{}' or an action exception '{}'", sa.action().author(), sa.action_address() );
+		authors.contains( sa.action().author() ) || exceptions.contains( sa.action_address() )
+	    })
+	    .collect();
+
+	debug!("Filtered {}/{} updates", updates_count - valid_updates.len(), updates_count );
+	let maybe_next_update = valid_updates.iter()
+	    .min_by_key(|sa| sa.action().timestamp() );
+
+	Ok(
+	    match maybe_next_update {
+		Some(signed_action) => Some(signed_action.hashed.hash.to_owned()),
+		None => None,
+	    }
+	)
+    })?;
 
     Ok( evolutions )
 }

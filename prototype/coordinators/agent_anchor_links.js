@@ -64,7 +64,7 @@ export default {
 	const authorities_diff	= prev_authoritiess.differences( entry.authoritiesSet() );
 	// console.log("Group authorities diff:", authorities_diff );
 
-	const address		= hash_entry( entry );		// EntryHash
+	// const address		= hash_entry( entry );		// EntryHash
 	const action_hash	= update_entry( base, entry );	// ActionHash
 
 	// Copy archive anchors from previous group revision unless the member was re-added

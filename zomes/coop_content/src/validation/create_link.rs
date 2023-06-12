@@ -8,7 +8,8 @@ use crate::{
     // EntryTypes,
     LinkTypes,
     GroupEntry,
-    GroupAuthAnchorEntry
+    GroupAuthAnchorEntry,
+    GroupAuthAnchor,
 };
 
 pub fn validation(
@@ -19,22 +20,22 @@ pub fn validation(
     create: CreateLink,
 ) -> ExternResult<ValidateCallbackResult> {
     match link_type {
-	LinkTypes::Content => {
+	LinkTypes::Content | LinkTypes::ContentUpdate => {
 	    debug!("Checking LinkTypes::Content base address: {}", base_address );
-	    // TODO: support any linkable hash, not just entry hash
 	    let anchor_entry_hash = match base_address.to_owned().into_entry_hash() {
 		Some(hash) => hash,
 		None => invalid!(format!("Content link base address must be an entry hash; not '{}'", base_address )),
 	    };
-	    let anchor : GroupAuthAnchorEntry = must_get_entry( anchor_entry_hash )?.content.try_into()?;
+	    let anchor : GroupAuthAnchor = must_get_entry( anchor_entry_hash )?.content.try_into()?;
 
-	    if anchor.1 != create.author {
-		invalid!(format!("Creating a link based on an auth anchor can only be made by the matching agent ({})", anchor.1 ))
+	    if !anchor.is_archive() && anchor.author() != &create.author {
+		invalid!(format!("Creating a link based on an auth anchor can only be made by the matching agent ({})", anchor.author() ))
 	    }
 
 	    valid!()
 	},
 	LinkTypes::Group => {
+	    debug!("Checking LinkTypes::Group");
 	    valid!()
 	},
 	LinkTypes::GroupAuth => {
@@ -61,6 +62,9 @@ pub fn validation(
 
 	    valid!()
 	},
-	_ => invalid!(format!("Create validation not implemented for link type: {:#?}", link_type )),
+	LinkTypes::GroupAuthArchive => {
+	    debug!("Checking LinkTypes::GroupAuthArchive");
+	    valid!()
+	},
     }
 }

@@ -8,7 +8,6 @@ name = "corrupt_csr"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-# coop_content_types = { path = "../../../coop_content_types" }
 coop_content = { path = "../../../zomes/coop_content" }
 hc_hdk_extensions = { path = "../../../hdk_extensions" }
 hdk = "0.3.0-beta-dev.2"

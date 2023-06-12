@@ -128,6 +128,7 @@ name = "basic_usage_csr"
 version = "0.0.0"
 dependencies = [
  "basic_usage",
+ "coop_content_types",
  "hc_hdk_extensions",
  "hdk",
  "serde",

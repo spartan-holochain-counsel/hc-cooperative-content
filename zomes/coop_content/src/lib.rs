@@ -5,15 +5,7 @@ use hdi_extensions::{
     ScopedTypeConnector, scoped_type_connector,
 };
 
-pub use coop_content_types::{
-    // Content entry types
-    GroupEntry,
-
-    // Anchor entry types
-    PathEntry,
-    GroupAuthAnchorEntry,
-    GroupAuthArchiveAnchorEntry,
-};
+pub use coop_content_types::*;
 
 
 

@@ -33,7 +33,7 @@ pub struct InvalidAuthAnchorInput {
 pub fn invalid_auth_anchor_link(input: InvalidAuthAnchorInput) -> ExternResult<()> {
     debug!("InvalidAuthAnchorInput: {:#?}", input );
     let anchor = GroupAuthAnchorEntry( input.group_id.to_owned(), input.anchor_agent.to_owned() );
-    let anchor_hash = hash_entry( anchor )?;
+    let anchor_hash = hash_entry( &anchor )?;
 
     create_link( anchor_hash, input.target, LinkTypes::Content, () )?;
 
@@ -53,7 +53,7 @@ pub fn invalid_group_auth_link(input: InvalidGroupAuthInput) -> ExternResult<()>
     debug!("InvalidGroupAuthInput: {:#?}", input );
     let anchor = GroupAuthAnchorEntry( input.group_id, input.anchor_agent );
     create_entry( anchor.to_input() )?;
-    let anchor_hash = hash_entry( anchor )?;
+    let anchor_hash = hash_entry( &anchor )?;
 
     create_link( input.group_rev, anchor_hash, LinkTypes::GroupAuth, () )?;
 
