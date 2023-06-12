@@ -1,9 +1,7 @@
 use hdk::prelude::*;
 use hdk_extensions::{
     must_get,
-    agent_id,
     trace_evolutions,
-    // trace_evolutions_using_authorities,
 
     // HDI Extensions
     ScopedTypeConnector,
@@ -12,8 +10,9 @@ use basic_usage::{
     ContentEntry,
 };
 use coop_content_types::{
-    CreateContentLinkInput,
-    GroupRef,
+    // Macros
+    attach_content_to_group,
+    attach_content_update_to_group,
 };
 
 
@@ -34,20 +33,9 @@ fn whoami(_: ()) -> ExternResult<AgentInfo> {
 #[hdk_extern]
 pub fn create_content(content: ContentEntry) -> ExternResult<ActionHash> {
     debug!("Creating new content entry: {:#?}", content );
-    let group_ref = content.group_ref();
     let action_hash = create_entry( content.to_input() )?;
 
-    call(
-	CallTargetCell::Local,
-	"coop_content_csr",
-	"create_content_link".into(),
-	None,
-	CreateContentLinkInput {
-	    group_id: group_ref.0,
-	    author: agent_id()?,
-	    target: action_hash.to_owned().into(),
-	},
-    )?;
+    attach_content_to_group!( content, action_hash );
 
     Ok( action_hash )
 }
@@ -73,20 +61,9 @@ pub struct UpdateInput {
 pub fn update_content(input: UpdateInput) -> ExternResult<ActionHash> {
     debug!("Update content action: {}", input.base );
     // let prev_content : ContentEntry = must_get( &input.base )?.try_into();
-    let group_ref = input.entry.group_ref();
     let action_hash = update_entry( input.base, input.entry.to_input() )?;
 
-    call(
-	CallTargetCell::Local,
-	"coop_content_csr",
-	"create_content_update_link".into(),
-	None,
-	CreateContentLinkInput {
-	    group_id: group_ref.0,
-	    author: agent_id()?,
-	    target: action_hash.to_owned().into(),
-	},
-    )?;
+    attach_content_update_to_group!( input.entry, action_hash );
 
     Ok( action_hash )
 }

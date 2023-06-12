@@ -219,6 +219,9 @@ macro_rules! group_ref {
 }
 
 
+//
+// Validation helpers
+//
 pub fn validate_group_auth<T>(
     entry: &T,
     action: impl Into<EntryCreationAction>
@@ -286,4 +289,59 @@ where
     }
 
     Ok(())
+}
+
+
+//
+// Zome call helpers
+//
+#[macro_export]
+macro_rules! call_coop_content_csr {
+    ( $zome:literal, $fn:literal, $($input:tt)+ ) => {
+	hdk::prelude::call(
+	    hdk::prelude::CallTargetCell::Local,
+	    $zome,
+	    $fn.into(),
+	    None,
+	    $($input)+,
+	)?;
+    };
+}
+
+#[macro_export]
+macro_rules! attach_content_to_group {
+    ( $($entry:ident).*, $target:ident ) => {
+	attach_content_to_group!( $($entry)*, $target, "coop_content_csr" )
+    };
+    ( $($entry:ident).*, $target:ident, $zome:literal ) => {
+	use coop_content_types::GroupRef;
+	coop_content_types::call_coop_content_csr!(
+	    $zome,
+	    "create_content_link",
+	    coop_content_types::CreateContentLinkInput {
+		group_id: $($entry).*.group_ref().0,
+		author: hdk_extensions::agent_id()?,
+		target: $target.to_owned().into(),
+	    }
+	);
+    };
+}
+
+#[macro_export]
+macro_rules! attach_content_update_to_group {
+    ( $($entry:ident).*, $target:ident ) => {
+	attach_content_update_to_group!( $($entry).*, $target, "coop_content_csr" )
+    };
+    ( $($entry:ident).*, $target:ident, $zome:literal ) => {
+	use coop_content_types::GroupRef;
+	coop_content_types::call_coop_content_csr!(
+	    $zome,
+	    "create_content_update_link",
+	    coop_content_types::CreateContentLinkInput {
+		group_id: $($entry).*.group_ref().0,
+		author: hdk_extensions::agent_id()?,
+		target: $target.to_owned().into(),
+	    }
+	);
+    };
 }
