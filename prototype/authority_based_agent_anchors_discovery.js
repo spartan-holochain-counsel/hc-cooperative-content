@@ -221,7 +221,7 @@ console.log("Created content 4: %s", content_4_id.toString(true) );
 }
 
 
-// Phase 2
+// Phase 3
 
 const group_1b_action		= cell_1.callZomeFunction("main", "update_group", {
     "base": group_1a_action,

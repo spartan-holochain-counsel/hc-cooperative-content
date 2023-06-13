@@ -35,7 +35,10 @@ pub fn create_content(content: ContentEntry) -> ExternResult<ActionHash> {
     debug!("Creating new content entry: {:#?}", content );
     let action_hash = create_entry( content.to_input() )?;
 
-    attach_content_to_group!( content, action_hash );
+    attach_content_to_group!({
+	entry: content,
+	target: action_hash.clone(),
+    });
 
     Ok( action_hash )
 }
@@ -63,7 +66,10 @@ pub fn update_content(input: UpdateInput) -> ExternResult<ActionHash> {
     // let prev_content : ContentEntry = must_get( &input.base )?.try_into();
     let action_hash = update_entry( input.base, input.entry.to_input() )?;
 
-    attach_content_update_to_group!( input.entry, action_hash );
+    attach_content_update_to_group!({
+	entry: input.entry,
+	target: action_hash.clone(),
+    });
 
     Ok( action_hash )
 }

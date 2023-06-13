@@ -149,17 +149,24 @@ pub enum GroupAuthAnchor {
 }
 
 impl GroupAuthAnchor {
-    pub fn is_archive(&self) -> bool {
-	match &self {
-	    GroupAuthAnchor::Active(_) => false,
-	    GroupAuthAnchor::Archive(_) => true,
-	}
-    }
-
     pub fn author(&self) -> &AgentPubKey {
 	match &self {
 	    GroupAuthAnchor::Active(anchor) => &anchor.1,
 	    GroupAuthAnchor::Archive(anchor) => &anchor.1,
+	}
+    }
+
+    pub fn group(&self) -> &ActionHash {
+	match &self {
+	    GroupAuthAnchor::Active(anchor) => &anchor.0,
+	    GroupAuthAnchor::Archive(anchor) => &anchor.0,
+	}
+    }
+
+    pub fn is_archive(&self) -> bool {
+	match &self {
+	    GroupAuthAnchor::Active(_) => false,
+	    GroupAuthAnchor::Archive(_) => true,
 	}
     }
 }
@@ -179,7 +186,16 @@ pub struct UpdateInput {
 pub struct CreateContentLinkInput {
     pub group_id: ActionHash,
     pub author: AgentPubKey,
-    pub target: AnyDhtHash,
+    pub content_target: AnyDhtHash,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CreateContentUpdateLinkInput {
+    pub group_id: ActionHash,
+    pub author: AgentPubKey,
+    pub content_id: AnyDhtHash,
+    pub content_prev_rev: AnyDhtHash,
+    pub content_target: AnyDhtHash,
 }
 
 
@@ -308,40 +324,65 @@ macro_rules! call_coop_content_csr {
     };
 }
 
+
+#[derive(Clone)]
+pub struct AttachContentMacroInput<T>
+where
+    T: GroupRef + Clone,
+{
+    pub entry: T,
+    pub target: ActionHash,
+}
+
 #[macro_export]
 macro_rules! attach_content_to_group {
-    ( $($entry:ident).*, $target:ident ) => {
-	attach_content_to_group!( $($entry)*, $target, "coop_content_csr" )
-    };
-    ( $($entry:ident).*, $target:ident, $zome:literal ) => {
+    ( $zome:literal, $($def:tt)* ) => {
 	use coop_content_types::GroupRef;
+	let input = coop_content_types::AttachContentMacroInput $($def)*;
+
 	coop_content_types::call_coop_content_csr!(
 	    $zome,
 	    "create_content_link",
 	    coop_content_types::CreateContentLinkInput {
-		group_id: $($entry).*.group_ref().0,
+		group_id: input.entry.group_ref().0,
 		author: hdk_extensions::agent_id()?,
-		target: $target.to_owned().into(),
+		content_target: input.target.clone().into(),
 	    }
 	);
+    };
+    ( $($def:tt)* ) => {
+	attach_content_to_group!( "coop_content_csr", $($def)* )
     };
 }
 
+
 #[macro_export]
 macro_rules! attach_content_update_to_group {
-    ( $($entry:ident).*, $target:ident ) => {
-	attach_content_update_to_group!( $($entry).*, $target, "coop_content_csr" )
-    };
-    ( $($entry:ident).*, $target:ident, $zome:literal ) => {
+    ( $zome:literal, $($def:tt)* ) => {
 	use coop_content_types::GroupRef;
+	let input = coop_content_types::AttachContentMacroInput $($def)*;
+	let history = hdk_extensions::trace_origin( &input.target )?;
+
+	if history.len() < 2 {
+	    Err(wasm_error!(WasmErrorInner::Guest(format!("History of target {} is empty", input.target ))))?
+	}
+
+	let content_id = &history[ history.len() - 1 ].0;
+	let content_prev_rev = &history[1].0;
+
 	coop_content_types::call_coop_content_csr!(
 	    $zome,
 	    "create_content_update_link",
-	    coop_content_types::CreateContentLinkInput {
-		group_id: $($entry).*.group_ref().0,
+	    coop_content_types::CreateContentUpdateLinkInput {
+		group_id: input.entry.group_ref().0,
 		author: hdk_extensions::agent_id()?,
-		target: $target.to_owned().into(),
+		content_id: content_id.clone().into(),
+		content_prev_rev: content_prev_rev.clone().into(),
+		content_target: input.target.clone().into(),
 	    }
 	);
+    };
+    ( $($def:tt)* ) => {
+	attach_content_update_to_group!( "coop_content_csr", $($def)* )
     };
 }

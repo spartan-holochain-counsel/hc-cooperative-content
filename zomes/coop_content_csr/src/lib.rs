@@ -27,6 +27,7 @@ use coop_content::{
     // Input Structs
     UpdateInput,
     CreateContentLinkInput,
+    CreateContentUpdateLinkInput,
 };
 use scoped_types::entry_traits::*;
 
@@ -83,25 +84,27 @@ where
 
 #[hdk_extern]
 pub fn create_content_link(input: CreateContentLinkInput) -> ExternResult<ActionHash> {
-    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.target );
+    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.content_target );
     let anchor = GroupAuthAnchorEntry( input.group_id, input.author );
     let anchor_hash = hash_entry( &anchor )?;
 
     create_if_not_exists( &anchor )?;
 
-    Ok( create_link( anchor_hash, input.target, LinkTypes::Content, () )? )
+    Ok( create_link( anchor_hash, input.content_target, LinkTypes::Content, () )? )
 }
 
 
 #[hdk_extern]
-pub fn create_content_update_link(input: CreateContentLinkInput) -> ExternResult<ActionHash> {
-    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.target );
+pub fn create_content_update_link(input: CreateContentUpdateLinkInput) -> ExternResult<ActionHash> {
+    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.content_target );
     let anchor = GroupAuthAnchorEntry( input.group_id, input.author );
     let anchor_hash = hash_entry( &anchor )?;
 
     create_if_not_exists( &anchor )?;
 
-    Ok( create_link( anchor_hash, input.target, LinkTypes::ContentUpdate, () )? )
+    let tag = format!("{}:{}", input.content_id, input.content_prev_rev );
+
+    Ok( create_link( anchor_hash, input.content_target, LinkTypes::ContentUpdate, tag.into_bytes() )? )
 }
 
 

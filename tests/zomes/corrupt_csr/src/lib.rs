@@ -6,7 +6,9 @@ use hdk_extensions::{
 use coop_content::{
     LinkTypes,
     GroupAuthAnchorEntry,
+    GroupAuthArchiveAnchorEntry,
 };
+
 
 
 #[hdk_extern]
@@ -56,6 +58,68 @@ pub fn invalid_group_auth_link(input: InvalidGroupAuthInput) -> ExternResult<()>
     let anchor_hash = hash_entry( &anchor )?;
 
     create_link( input.group_rev, anchor_hash, LinkTypes::GroupAuth, () )?;
+
+    Ok(())
+}
+
+
+#[derive(Clone, Deserialize, Debug)]
+pub struct InvalidGroupAuthArchiveLinkInput {
+    group_rev: ActionHash,
+    anchor_agent: AgentPubKey,
+}
+
+#[hdk_extern]
+pub fn invalid_group_auth_archive_link(input: InvalidGroupAuthArchiveLinkInput) -> ExternResult<()> {
+    debug!("InvalidGroupAuthArchiveLinkInput: {:#?}", input );
+    let anchor = GroupAuthArchiveAnchorEntry::new( input.group_rev.to_owned(), input.anchor_agent );
+    create_entry( anchor.to_input() )?;
+    let anchor_hash = hash_entry( &anchor )?;
+
+    create_link( input.group_rev, anchor_hash, LinkTypes::GroupAuthArchive, () )?;
+
+    Ok(())
+}
+
+
+#[derive(Clone, Deserialize, Debug)]
+pub struct InvalidArchiveLinkInput {
+    group_rev: ActionHash,
+    archived_agent: AgentPubKey,
+    target: ActionHash,
+}
+
+#[hdk_extern]
+pub fn invalid_archive_link(input: InvalidArchiveLinkInput) -> ExternResult<()> {
+    debug!("InvalidArchiveLinkInput: {:#?}", input );
+    let anchor = GroupAuthArchiveAnchorEntry::new( input.group_rev, input.archived_agent );
+    create_entry( anchor.to_input() )?;
+    let archive_anchor_hash = hash_entry( &anchor )?;
+    create_link( archive_anchor_hash.to_owned(), input.target.to_owned(), LinkTypes::Content, () )?;
+
+    Ok(())
+}
+
+
+#[derive(Clone, Deserialize, Debug)]
+pub struct InvalidLinkBaseInput {
+    base: AnyLinkableHash,
+    target: ActionHash,
+}
+
+#[hdk_extern]
+pub fn invalid_content_link_base(input: InvalidLinkBaseInput) -> ExternResult<()> {
+    debug!("InvalidLinkBaseInput: {:#?}", input );
+    create_link( input.base.to_owned(), input.target.to_owned(), LinkTypes::Content, () )?;
+
+    Ok(())
+}
+
+
+#[hdk_extern]
+pub fn invalid_group_auth_link_base(input: InvalidLinkBaseInput) -> ExternResult<()> {
+    debug!("InvalidLinkBaseInput: {:#?}", input );
+    create_link( input.base.to_owned(), input.target.to_owned(), LinkTypes::GroupAuth, () )?;
 
     Ok(())
 }
