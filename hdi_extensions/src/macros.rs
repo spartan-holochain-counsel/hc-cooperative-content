@@ -14,12 +14,8 @@ macro_rules! invalid {
 }
 
 #[macro_export]
-macro_rules! unwrap_validation {
-    ( $($code:tt)+ ) => {
-	match $($code)+ {
-	    Ok(ValidateCallbackResult::Invalid(msg)) => return Ok(ValidateCallbackResult::Invalid(msg)),
-	    Err(err) => return Err(err),
-	    _ => (),
-	}
+macro_rules! guest_error {
+    ( $message:expr ) => {
+	wasm_error!(WasmErrorInner::Guest( $message ))
     };
 }

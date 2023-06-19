@@ -241,7 +241,7 @@ function phase1_checks_tests () {
 		"base": clients.bobby.cellAgent().retype("EntryHash"),
 		"target": new ActionHash( crypto.randomBytes(32) ),
 	    });
-	}, "base address must be a group auth anchor entry" );
+	}, "has no serialized bytes" );
     });
 
     it("should reject auth anchor link because base is not a group entry", async function () {
@@ -250,7 +250,7 @@ function phase1_checks_tests () {
 		"base": c1_addr,
 		"target": new ActionHash( crypto.randomBytes(32) ),
 	    });
-	}, "base address must be a group entry" );
+	}, "Could not deserialize any-linkable address to expected type: missing field `admins`" );
     });
 
     it("should reject content link because author does not match auth anchor agent", async function () {
@@ -576,13 +576,53 @@ function phase3_tests () {
 function phase3_checks_tests () {
 
     // Dynamic
-    it("should reject auth anchor link because agent (A2 + A3) is not an admin", async function () {
+    it("should reject auth archive anchor link because base is not a group entry", async function () {
 	await expect_reject( async () => {
 	    await clients.bobby.call( DNA_NAME, EVIL_ZOME, "invalid_group_auth_archive_link", {
 		"group_rev": c1_addr,
 		"anchor_agent": clients.alice.cellAgent(),
 	    });
-	}, "link base address must be a group entry" );
+	}, "Could not deserialize any-linkable address to expected type: missing field `admins`" );
+    });
+
+    it("should reject auth anchor link delete", async function () {
+	await expect_reject( async () => {
+	    await clients.alice.call( DNA_NAME, EVIL_ZOME, "delete_group_auth_link", {
+		"group_id": g1_addr,
+		"group_rev": g1_addr,
+		"anchor_agent": clients.alice.cellAgent(),
+	    });
+	}, "group auth anchor links cannot be deleted" );
+    });
+
+    it("should reject content link delete because author did not create the link", async function () {
+	let anchor_hash			= await clients.bobby.call( DNA_NAME, COOP_ZOME, "group_auth_anchor_hash", {
+	    "group_id": g1_addr,
+	    "author": clients.bobby.cellAgent(),
+	});
+
+	await expect_reject( async () => {
+	    await clients.alice.call( DNA_NAME, COOP_ZOME, "delete_content_link", {
+		"base": anchor_hash,
+		"target": c3_addr,
+		"link_type": "..",
+	    });
+	}, "group auth anchor can only be deleted" );
+    });
+
+    it("should reject content link delete because author is not an admin", async function () {
+	let anchor_hash			= await clients.bobby.call( DNA_NAME, COOP_ZOME, "group_auth_archive_anchor_hash", {
+	    "group_id": g1a_addr,
+	    "author": clients.bobby.cellAgent(),
+	});
+
+	await expect_reject( async () => {
+	    await clients.bobby.call( DNA_NAME, COOP_ZOME, "delete_content_link", {
+		"base": anchor_hash,
+		"target": c3_addr,
+		"link_type": "Content",
+	    });
+	}, "group auth archive anchor can only be deleted by an admin" );
     });
 
 }

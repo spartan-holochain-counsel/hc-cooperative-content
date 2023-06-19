@@ -11,12 +11,11 @@
     "@faker-js/faker": "^8.0.2",
     "@whi/holo-hash": "^0.5.3",
     "@whi/holochain-backdrop": "^2.2.1",
-    "@whi/into-struct": "file:../../into-struct-js",
+    "@whi/into-struct": "file:../../../projects/into-struct-js",
     "@whi/json": "^0.1.6",
     "@whi/weblogger": "^0.1.6",
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
     "why-is-node-running": "^2.2.2"
-  },
-  "devDependencies": {}
+  }
 }

@@ -63,6 +63,23 @@ pub fn invalid_group_auth_link(input: InvalidGroupAuthInput) -> ExternResult<()>
 }
 
 
+#[hdk_extern]
+pub fn delete_group_auth_link(input: InvalidGroupAuthInput) -> ExternResult<()> {
+    let anchor = GroupAuthAnchorEntry( input.group_id, input.anchor_agent );
+    let anchor_hash = hash_entry( &anchor )?;
+    let links = get_links( input.group_rev.clone(), LinkTypes::GroupAuth, None )?;
+
+    for link in links {
+	if link.target == anchor_hash.clone().into() {
+	    debug!("Deleting link create: {}", link.create_link_hash );
+	    delete_link( link.create_link_hash.clone() )?;
+	}
+    }
+
+    Ok(())
+}
+
+
 #[derive(Clone, Deserialize, Debug)]
 pub struct InvalidGroupAuthArchiveLinkInput {
     group_rev: ActionHash,

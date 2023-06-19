@@ -14,6 +14,10 @@ use hdk_extensions::{
     get_root_origin,
     ScopedTypeConnector,
 };
+use hdi_extensions::{
+    UpdateInput,
+    GetLinksInput,
+};
 use coop_content::{
     EntryTypes,
     EntryTypesUnit,
@@ -25,7 +29,6 @@ use coop_content::{
     GroupAuthArchiveAnchorEntry,
 
     // Input Structs
-    UpdateInput,
     CreateContentLinkInput,
     CreateContentUpdateLinkInput,
 };
@@ -172,7 +175,7 @@ pub fn get_group_content_targets(group_id: ActionHash) -> ExternResult<Vec<Actio
 
 
 #[hdk_extern]
-pub fn update_group(input: UpdateInput) -> ExternResult<ActionHash> {
+pub fn update_group(input: UpdateInput<GroupEntry>) -> ExternResult<ActionHash> {
     debug!("Update group action: {}", input.base );
     let group_id = get_root_origin( &input.base )?.0;
     let prev_group : GroupEntry = must_get( &input.base )?.try_into()?;
@@ -225,4 +228,38 @@ pub fn update_group(input: UpdateInput) -> ExternResult<ActionHash> {
     }
 
     Ok( action_hash )
+}
+
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GroupAuthInput {
+    pub group_id: ActionHash,
+    pub author: AgentPubKey,
+}
+
+#[hdk_extern]
+pub fn group_auth_anchor_hash(input: GroupAuthInput) -> ExternResult<EntryHash> {
+    Ok( hash_entry( GroupAuthAnchorEntry( input.group_id, input.author ) )? )
+}
+
+#[hdk_extern]
+pub fn group_auth_archive_anchor_hash(input: GroupAuthInput) -> ExternResult<EntryHash> {
+    Ok( hash_entry( GroupAuthArchiveAnchorEntry::new( input.group_id, input.author ) )? )
+}
+
+
+#[hdk_extern]
+pub fn delete_content_link(input: GetLinksInput<LinkTypes>) -> ExternResult<Vec<ActionHash>> {
+    debug!("GetLinksInput: {:#?}", input );
+    let links = get_links( input.base, input.link_type_filter, input.tag )?;
+    let mut deleted = vec![];
+
+    for link in links {
+	if link.target == input.target {
+	    delete_link( link.create_link_hash.clone() )?;
+	    deleted.push( link.create_link_hash );
+	}
+    }
+
+    Ok( deleted )
 }

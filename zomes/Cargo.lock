@@ -305,6 +305,7 @@ version = "0.0.0"
 dependencies = [
  "coop_content",
  "coop_content_types",
+ "hc_hdi_extensions",
  "hc_hdk_extensions",
  "hdk",
  "lazy_static",

@@ -176,12 +176,6 @@ impl GroupAuthAnchor {
 //
 // CSR Input Structs
 //
-#[derive(Clone, Deserialize, Debug)]
-pub struct UpdateInput {
-    pub base: ActionHash,
-    pub entry: GroupEntry,
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CreateContentLinkInput {
     pub group_id: ActionHash,

@@ -83,3 +83,9 @@ pub fn trace_evolutions_using_authorities_with_exceptions(input: TraceAuthoritie
 	)?
     )
 }
+
+
+#[hdk_extern]
+pub fn get_all_links_on_base(base: AnyLinkableHash) -> ExternResult<Vec<Link>> {
+    Ok( get_links( base, .., None )? )
+}

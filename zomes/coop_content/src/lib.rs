@@ -1,7 +1,11 @@
 mod validation;
 
+use serde::{
+    Deserialize, Deserializer,
+};
 use hdi::prelude::*;
 use hdi_extensions::{
+    guest_error,
     ScopedTypeConnector, scoped_type_connector,
 };
 
@@ -52,4 +56,34 @@ pub enum LinkTypes {
     GroupAuthArchive,
     Content,
     ContentUpdate,
+}
+
+impl TryFrom<String> for LinkTypes {
+    type Error = WasmError;
+
+    fn try_from(name: String) -> Result<Self, Self::Error> {
+	Ok(
+	    match name.as_str() {
+		"Group" => LinkTypes::Group,
+		"GroupAuth" => LinkTypes::GroupAuth,
+		"GroupAuthArchive" => LinkTypes::GroupAuthArchive,
+		"Content" => LinkTypes::Content,
+		"ContentUpdate" => LinkTypes::ContentUpdate,
+		_ => return Err(guest_error!(format!("Unknown LinkTypes variant: {}", name ))),
+	    }
+	)
+    }
+}
+
+impl<'de> Deserialize<'de> for LinkTypes {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+	D: Deserializer<'de>,
+    {
+	let s: String = Deserialize::deserialize(deserializer)?;
+	Ok(
+	    LinkTypes::try_from( s.clone() )
+		.or(Err(serde::de::Error::custom(format!("Unknown LinkTypes variant: {}", s))))?
+	)
+    }
 }

@@ -1,11 +1,12 @@
 mod create_entry;
 mod update_entry;
 mod create_link;
+mod delete_link;
 
 use hdi::prelude::*;
 use hdi_extensions::{
     // Macros
-    valid,
+    valid, invalid,
 };
 use crate::{
     EntryTypes,
@@ -15,16 +16,18 @@ use crate::{
 
 #[hdk_extern]
 fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    match op.flattened::<EntryTypes, LinkTypes>()? {
+    let result = match op.flattened::<EntryTypes, LinkTypes>()? {
 	FlatOp::StoreRecord(op_record) => match op_record {
 	    OpRecord::CreateEntry { app_entry, action } =>
 		create_entry::validation( app_entry, action ),
 	    OpRecord::UpdateEntry { app_entry, action, original_action_hash, original_entry_hash } =>
 		update_entry::validation( app_entry, action, original_action_hash, original_entry_hash ),
-	    // OpRecord::DeleteEntry { original_action_hash, original_entry_hash, action: delete },
+	    // OpRecord::DeleteEntry { original_action_hash, original_entry_hash, action } =>
+	    // 	delete_entry::validation( original_action_hash, original_entry_hash, action ),
 	    OpRecord::CreateLink { base_address, target_address, tag, link_type, action } =>
 		create_link::validation( base_address, target_address, link_type, tag, action ),
-	    // OpRecord::DeleteLink { original_action_hash, base_address, action: delete_link },
+	    OpRecord::DeleteLink { original_action_hash, base_address, action } =>
+		delete_link::validation( original_action_hash, base_address, action ),
 	    // OpRecord::CreateAgent { agent, action: create },
 	    // OpRecord::UpdateAgent { original_key, new_key, original_action_hash, action: update },
 	    // OpRecord::CreateCapClaim { action: create },
@@ -47,5 +50,10 @@ fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
 	// FlatOp::RegisterUpdate(op_update),
 	// FlatOp::RegisterDelete(op_delete),
 	_ => valid!(),
+    };
+
+    match result {
+	Err(WasmError{ error: WasmErrorInner::Guest(msg), .. }) => invalid!(msg),
+	rest => rest,
     }
 }
