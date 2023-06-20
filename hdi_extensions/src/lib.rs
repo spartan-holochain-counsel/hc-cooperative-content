@@ -1,7 +1,17 @@
 mod macros;
 
-use hdi::prelude::*;
-use holo_hash::AnyLinkableHashPrimitive;
+use core::convert::{ TryFrom, TryInto };
+use hdi::prelude::{
+    must_get_valid_record, must_get_entry,
+    wasm_error,
+    ExternResult, WasmError, WasmErrorInner,
+    Deserialize, Serialize, SerializedBytesError,
+    ActionHash, EntryHash, AnyLinkableHash,
+    Record, Action, Entry,
+    AppEntryDef, ScopedEntryDefIndex,
+    LinkTypeFilter, LinkTypeFilterExt, LinkTag,
+};
+use hdi::prelude::holo_hash::AnyLinkableHashPrimitive;
 
 
 
@@ -199,7 +209,7 @@ where
 // Standard Inputs
 //
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct UpdateInput<T> {
+pub struct UpdateEntryInput<T> {
     pub base: ActionHash,
     pub entry: T,
 }
@@ -210,6 +220,13 @@ pub struct LinkBaseTargetInput {
     pub target: AnyLinkableHash,
 }
 
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct GetLinksInputBuffer {
+    pub base: AnyLinkableHash,
+    pub target: AnyLinkableHash,
+    pub link_type: String,
+    pub tag: Option<String>,
+}
 
 #[derive(Clone, Serialize, Debug)]
 pub struct GetLinksInput<T>
@@ -221,14 +238,6 @@ where
     pub link_type_filter: LinkTypeFilter,
     pub tag: Option<LinkTag>,
     pub link_type: Option<T>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct GetLinksInputBuffer {
-    pub base: AnyLinkableHash,
-    pub target: AnyLinkableHash,
-    pub link_type: String,
-    pub tag: Option<String>,
 }
 
 impl<T> TryFrom<GetLinksInputBuffer> for GetLinksInput<T>

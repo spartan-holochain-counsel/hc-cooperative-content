@@ -13,9 +13,7 @@ use hdk_extensions::{
     // HDI Extensions
     get_root_origin,
     ScopedTypeConnector,
-};
-use hdi_extensions::{
-    UpdateInput,
+    UpdateEntryInput,
     GetLinksInput,
 };
 use coop_content::{
@@ -175,7 +173,7 @@ pub fn get_group_content_targets(group_id: ActionHash) -> ExternResult<Vec<Actio
 
 
 #[hdk_extern]
-pub fn update_group(input: UpdateInput<GroupEntry>) -> ExternResult<ActionHash> {
+pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionHash> {
     debug!("Update group action: {}", input.base );
     let group_id = get_root_origin( &input.base )?.0;
     let prev_group : GroupEntry = must_get( &input.base )?.try_into()?;
