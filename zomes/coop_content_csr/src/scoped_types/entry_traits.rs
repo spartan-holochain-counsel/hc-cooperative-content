@@ -6,12 +6,19 @@ pub trait GroupLinks {
 }
 
 pub trait GroupAuthLinks {
-    fn content_targets(&self) -> ExternResult<Vec<AnyLinkableHash>>;
+    fn base_address(&self) -> ExternResult<EntryHash>;
+    fn create_targets(&self) -> ExternResult<Vec<AnyLinkableHash>>;
+    fn update_links(&self) -> ExternResult<Vec<Link>>;
+    fn update_targets(&self) -> ExternResult<Vec<AnyLinkableHash>>;
+    fn shortcuts(&self) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash, AnyLinkableHash)>>;
 }
 
 
 pub trait GroupAuthArchiveLinks {
+    fn base_address(&self) -> ExternResult<EntryHash>;
     fn create_targets(&self) -> ExternResult<Vec<AnyLinkableHash>>;
+    fn update_links(&self) -> ExternResult<Vec<Link>>;
     fn update_targets(&self) -> ExternResult<Vec<AnyLinkableHash>>;
+    fn shortcuts(&self) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash, AnyLinkableHash)>>;
 }
 

@@ -164,11 +164,11 @@ export default {
 	agent_anchors.forEach( link => {
 	    const agent_anchor_entry	= must_get_entry( link.target ).content
 		  .toEntryType( EntryTypes.GroupMemberAnchorEntry );
-	    console.log("Group %s has archived member: %s", id.toString(true), agent_anchor_entry[1].toString(true) );
+	    console.log("Group %s has member: %s", id.toString(true), agent_anchor_entry[1].toString(true) );
 
 	    const links			= get_links( link.target, LinkTypes.Subject );
 	    const ulinks		= get_links( link.target, LinkTypes.SubjectUpdate );
-	    console.log("Archived members content: %s", {
+	    console.log("Members content: %s", {
 		"Subject": links.length,
 		"SubjectUpdate": ulinks.length,
 	    });

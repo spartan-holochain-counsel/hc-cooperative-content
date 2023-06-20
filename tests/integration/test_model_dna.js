@@ -204,7 +204,9 @@ function phase1_tests () {
 
     it("should get group content and find: C1a, C2a, C3", async function () {
 	const targets			= new Set(
-	    (await clients.carol.call( DNA_NAME, COOP_ZOME, "get_group_content_targets", g1_addr ))
+	    (await clients.carol.call( DNA_NAME, COOP_ZOME, "get_group_content_targets", {
+		"id": g1_addr,
+	    }))
 		.map( addr => String(new HoloHash(addr)) )
 	);
 	log.debug("Group content targets: %s", targets );
@@ -418,7 +420,9 @@ function phase2_tests () {
 
     it("should get group content and find: C1a, C2b, C3, C4", async function () {
 	const targets			= new Set(
-	    (await clients.carol.call( DNA_NAME, COOP_ZOME, "get_group_content_targets", g1_addr ))
+	    (await clients.carol.call( DNA_NAME, COOP_ZOME, "get_group_content_targets", {
+		"id": g1_addr,
+	    }))
 		.map( addr => String(new HoloHash(addr)) )
 	);
 	log.debug("Group content targets: %s", targets );
@@ -554,7 +558,30 @@ function phase3_tests () {
 
     it("should get group content and find: C1a, C2b, C3a, C4a, C5", async function () {
 	const targets			= new Set(
-	    (await clients.carol.call( DNA_NAME, COOP_ZOME, "get_group_content_targets", g1_addr ))
+	    (await clients.carol.call( DNA_NAME, COOP_ZOME, "get_group_content_targets", {
+		"id": g1_addr,
+	    }))
+		.map( addr => String(new HoloHash(addr)) )
+	);
+	log.debug("Group content targets: %s", targets );
+
+	const expected_targets	= [
+	    c1a_addr,
+	    c2b_addr,
+	    c3a_addr,
+	    c4a_addr,
+	    c5_addr,
+	].map( addr => String(new HoloHash(addr)) );
+	expect( targets			).to.have.all.keys( ...expected_targets );
+	expect( targets			).to.have.lengthOf( expected_targets.length );
+    });
+
+    it("should get group content using full trace and find: C1a, C2b, C3a, C4a, C5", async function () {
+	const targets			= new Set(
+	    (await clients.carol.call( DNA_NAME, COOP_ZOME, "get_group_content_targets", {
+		"id": g1_addr,
+		"full_trace": true,
+	    }))
 		.map( addr => String(new HoloHash(addr)) )
 	);
 	log.debug("Group content targets: %s", targets );
