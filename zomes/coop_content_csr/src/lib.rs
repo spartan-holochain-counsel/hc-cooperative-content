@@ -16,6 +16,9 @@ use hdk_extensions::{
     ScopedTypeConnector,
     UpdateEntryInput,
     GetLinksInput,
+
+    // Macros
+    guest_error,
 };
 use coop_content::{
     EntryTypes,
@@ -28,6 +31,9 @@ use coop_content::{
     GroupAuthArchiveAnchorEntry,
 
     // Input Structs
+    GroupAuthInput,
+    GetAllGroupContentInput,
+    GetGroupContentInput,
     CreateContentLinkInput,
     CreateContentUpdateLinkInput,
 };
@@ -39,6 +45,24 @@ lazy_static! {
 	Ok(info) => format!("{}", info.name ),
 	Err(_) => String::from("?"),
     };
+}
+
+type LinkPointerMap = HashMap<AnyLinkableHash, AnyLinkableHash>;
+type EvolutionMap = HashMap<AnyLinkableHash, Vec<AnyLinkableHash>>;
+
+
+fn create_if_not_exists<'a, T, E, E2>(entry: &'a T) -> ExternResult<Option<ActionHash>>
+where
+    T: ScopedTypeConnector<EntryTypes, EntryTypesUnit>,
+    Entry: TryFrom<&'a T, Error = E> + TryFrom<T, Error = E2>,
+    WasmError: From<E> + From<E2>,
+{
+    Ok(
+	match exists( &hash_entry( entry )? )? {
+	    true => None,
+	    false => Some( create_entry( entry.to_input() )? ),
+	}
+    )
 }
 
 
@@ -66,185 +90,6 @@ pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
     create_link( agent_id, action_hash.to_owned(), LinkTypes::Group, () )?;
 
     Ok( action_hash )
-}
-
-
-fn create_if_not_exists<'a, T, E, E2>(entry: &'a T) -> ExternResult<Option<ActionHash>>
-where
-    T: ScopedTypeConnector<EntryTypes, EntryTypesUnit>,
-    Entry: TryFrom<&'a T, Error = E> + TryFrom<T, Error = E2>,
-    WasmError: From<E> + From<E2>,
-{
-    Ok(
-	match exists( &hash_entry( entry )? )? {
-	    true => None,
-	    false => Some( create_entry( entry.to_input() )? ),
-	}
-    )
-}
-
-
-#[hdk_extern]
-pub fn create_content_link(input: CreateContentLinkInput) -> ExternResult<ActionHash> {
-    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.content_target );
-    let anchor = GroupAuthAnchorEntry( input.group_id, input.author );
-    let anchor_hash = hash_entry( &anchor )?;
-
-    create_if_not_exists( &anchor )?;
-
-    Ok( create_link( anchor_hash, input.content_target, LinkTypes::Content, () )? )
-}
-
-
-#[hdk_extern]
-pub fn create_content_update_link(input: CreateContentUpdateLinkInput) -> ExternResult<ActionHash> {
-    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.content_target );
-    let anchor = GroupAuthAnchorEntry( input.group_id, input.author );
-    let anchor_hash = hash_entry( &anchor )?;
-
-    create_if_not_exists( &anchor )?;
-
-    let tag = format!("{}:{}", input.content_id, input.content_prev_rev );
-
-    Ok( create_link( anchor_hash, input.content_target, LinkTypes::ContentUpdate, tag.into_bytes() )? )
-}
-
-
-#[hdk_extern]
-pub fn get_group(group_id: ActionHash) -> ExternResult<GroupEntry> {
-    debug!("Get latest group entry: {}", group_id );
-    let latest_addr = latest_evolution( &group_id )?;
-    let record = must_get( &latest_addr )?;
-
-    Ok( GroupEntry::try_from_record( &record )? )
-}
-
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct GetGroupContentsInput {
-    pub id: ActionHash,
-    pub full_trace: Option<bool>,
-}
-
-#[hdk_extern]
-pub fn get_group_content_targets(input: GetGroupContentsInput) -> ExternResult<Vec<AnyLinkableHash>> {
-    match input.full_trace {
-	None | Some(false) => get_group_content_targets_shortcuts( input.id ),
-	Some(true) => get_group_content_targets_full_trace( input.id ),
-    }
-}
-
-
-#[hdk_extern]
-pub fn get_group_content_targets_full_trace(group_id: ActionHash) -> ExternResult<Vec<AnyLinkableHash>> {
-    debug!("Get latest group content: {}", group_id );
-    let latest_addr = latest_evolution( &group_id )?;
-    let record = must_get( &latest_addr )?;
-    let group_rev = record.action_address().to_owned();
-    let group : GroupEntry = record.try_into()?;
-
-    let mut content_creates = vec![];
-    let mut archived_updates : Vec<ActionHash> = vec![];
-
-    let auth_archive_anchors = GroupEntry::group_auth_archive_addrs( &group_rev )?;
-
-    debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
-    for auth_archive_addr in auth_archive_anchors.iter() {
-	let anchor : GroupAuthArchiveAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
-	content_creates.extend( anchor.create_targets()? );
-
-	let archive_updates = anchor.update_targets()?;
-	let update_actions : Vec<ActionHash> = archive_updates.iter()
-	    .cloned()
-	    .filter_map(|target| target.into_action_hash() )
-	    .collect();
-	debug!("Removed {}/{} archive updates because they were not ActionHash targets", archive_updates.len() - update_actions.len(), archive_updates.len() );
-	archived_updates.extend( update_actions );
-    }
-
-    let group_auth_anchors = GroupEntry::group_auth_addrs( &group_rev )?;
-
-    debug!("Found {} current authorities for group rev '{}'", group_auth_anchors.len(), group_rev );
-    for auth_anchor_addr in group_auth_anchors.iter() {
-	let anchor : GroupAuthAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
-	let content_targets = anchor.create_targets()?;
-	debug!("Found {} content links for group authority '{}'", content_targets.len(), anchor.1 );
-	content_creates.extend( content_targets );
-    }
-
-    let mut targets = vec![];
-
-    for content_addr in content_creates {
-	match content_addr.into_action_hash() {
-	    Some(addr) => {
-		let evolutions = trace_evolutions_using_authorities_with_exceptions( &addr, &group.authorities(), &archived_updates )?;
-		targets.push( evolutions.last().unwrap().to_owned().into() )
-	    },
-	    None => continue,
-	}
-    }
-
-    Ok( targets )
-}
-
-
-fn trace_update_map(
-    start: &AnyLinkableHash,
-    updates: &HashMap<AnyLinkableHash, AnyLinkableHash>
-) -> Vec<AnyLinkableHash> {
-    let mut link_map = updates.clone();
-    let mut evolutions = vec![ start.to_owned() ];
-    let mut base = start.to_owned();
-
-    while let Some(next_addr) = link_map.remove( &base ) {
-	evolutions.push( next_addr.to_owned() );
-	base = next_addr;
-    }
-
-    evolutions
-}
-
-#[hdk_extern]
-pub fn get_group_content_targets_shortcuts(group_id: ActionHash) -> ExternResult<Vec<AnyLinkableHash>> {
-    debug!("Get latest group content: {}", group_id );
-    let latest_addr = latest_evolution( &group_id )?;
-    let record = must_get( &latest_addr )?;
-    let group_rev = record.action_address().to_owned();
-
-    let mut targets = vec![];
-    let mut updates = HashMap::new();
-
-    let auth_archive_anchors = GroupEntry::group_auth_archive_addrs( &group_rev )?;
-
-    debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
-    for auth_archive_addr in auth_archive_anchors.iter() {
-	let anchor : GroupAuthArchiveAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
-
-	targets.extend( anchor.create_targets()? );
-
-	for (_,base,target) in anchor.shortcuts()? {
-	    updates.insert( base, target );
-	}
-    }
-
-    let group_auth_anchors = GroupEntry::group_auth_addrs( &group_rev )?;
-
-    debug!("Found {} current authorities for group rev '{}'", group_auth_anchors.len(), group_rev );
-    for auth_anchor_addr in group_auth_anchors.iter() {
-	let anchor : GroupAuthAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
-
-	targets.extend( anchor.create_targets()? );
-
-	for (_,base,target) in anchor.shortcuts()? {
-	    updates.insert( base, target );
-	}
-    }
-
-    Ok(
-	targets.into_iter()
-	    .map(|addr| trace_update_map( &addr, &updates ).last().unwrap().to_owned() )
-	    .collect()
-    )
 }
 
 
@@ -305,11 +150,157 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionH
 }
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct GroupAuthInput {
-    pub group_id: ActionHash,
-    pub author: AgentPubKey,
+#[hdk_extern]
+pub fn get_group(group_id: ActionHash) -> ExternResult<GroupEntry> {
+    debug!("Get latest group entry: {}", group_id );
+    let latest_addr = latest_evolution( &group_id )?;
+    let record = must_get( &latest_addr )?;
+
+    Ok( GroupEntry::try_from_record( &record )? )
 }
+
+
+#[hdk_extern]
+pub fn get_all_group_content_targets(input: GetAllGroupContentInput) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
+    match input.full_trace {
+	None | Some(false) => get_all_group_content_targets_shortcuts( input.group_id ),
+	Some(true) => get_all_group_content_targets_full_trace( input.group_id ),
+    }
+}
+
+
+#[hdk_extern]
+pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
+    debug!("Get latest group content: {}", group_id );
+    let latest_addr = latest_evolution( &group_id )?;
+    let record = must_get( &latest_addr )?;
+    let group_rev = record.action_address().to_owned();
+    let group : GroupEntry = record.try_into()?;
+
+    let mut content_creates = vec![];
+    let mut archived_updates : Vec<ActionHash> = vec![];
+
+    let auth_archive_anchors = GroupEntry::group_auth_archive_addrs( &group_rev )?;
+
+    debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
+    for auth_archive_addr in auth_archive_anchors.iter() {
+	let anchor : GroupAuthArchiveAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
+	content_creates.extend( anchor.create_targets()? );
+
+	let archive_updates = anchor.update_targets()?;
+	let update_actions : Vec<ActionHash> = archive_updates.iter()
+	    .cloned()
+	    .filter_map(|target| target.into_action_hash() )
+	    .collect();
+	debug!("Removed {}/{} archive updates because they were not ActionHash targets", archive_updates.len() - update_actions.len(), archive_updates.len() );
+	archived_updates.extend( update_actions );
+    }
+
+    let group_auth_anchors = GroupEntry::group_auth_addrs( &group_rev )?;
+
+    debug!("Found {} current authorities for group rev '{}'", group_auth_anchors.len(), group_rev );
+    for auth_anchor_addr in group_auth_anchors.iter() {
+	let anchor : GroupAuthAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
+	let content_targets = anchor.create_targets()?;
+	debug!("Found {} content links for group authority '{}'", content_targets.len(), anchor.1 );
+	content_creates.extend( content_targets );
+    }
+
+    let mut targets = vec![];
+
+    for content_addr in content_creates {
+	match content_addr.clone().into_action_hash() {
+	    Some(addr) => {
+		let evolutions = trace_evolutions_using_authorities_with_exceptions( &addr, &group.authorities(), &archived_updates )?;
+		targets.push((
+		    content_addr,
+		    evolutions.last().unwrap().to_owned().into()
+		));
+	    },
+	    None => continue,
+	}
+    }
+
+    Ok( targets )
+}
+
+
+fn trace_update_map(
+    start: &AnyLinkableHash,
+    updates: &LinkPointerMap
+) -> Vec<AnyLinkableHash> {
+    let mut link_map = updates.clone();
+    let mut evolutions = vec![ start.to_owned() ];
+    let mut base = start.to_owned();
+
+    while let Some(next_addr) = link_map.remove( &base ) {
+	evolutions.push( next_addr.to_owned() );
+	base = next_addr;
+    }
+
+    evolutions
+}
+
+#[hdk_extern]
+pub fn trace_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, Vec<AnyLinkableHash>)>> {
+    debug!("Get latest group content: {}", group_id );
+    let latest_addr = latest_evolution( &group_id )?;
+    let record = must_get( &latest_addr )?;
+    let group_rev = record.action_address().to_owned();
+
+    let mut targets = vec![];
+    let mut updates = HashMap::new();
+
+    let auth_archive_anchors = GroupEntry::group_auth_archive_addrs( &group_rev )?;
+
+    debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
+    for auth_archive_addr in auth_archive_anchors.iter() {
+	let anchor : GroupAuthArchiveAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
+
+	targets.extend( anchor.create_targets()? );
+
+	for (_,base,target) in anchor.shortcuts()? {
+	    updates.insert( base, target );
+	}
+    }
+
+    let group_auth_anchors = GroupEntry::group_auth_addrs( &group_rev )?;
+
+    debug!("Found {} current authorities for group rev '{}'", group_auth_anchors.len(), group_rev );
+    for auth_anchor_addr in group_auth_anchors.iter() {
+	let anchor : GroupAuthAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
+
+	targets.extend( anchor.create_targets()? );
+
+	for (_,base,target) in anchor.shortcuts()? {
+	    updates.insert( base, target );
+	}
+    }
+
+    let mut content_evolutions = vec![];
+
+    for addr in targets {
+	content_evolutions.push((
+	    addr.clone(),
+	    trace_update_map( &addr, &updates )
+	));
+    }
+
+    Ok( content_evolutions )
+}
+
+#[hdk_extern]
+pub fn get_all_group_content_targets_shortcuts(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
+    Ok(
+	trace_all_group_content_evolutions_shortcuts( group_id )?.into_iter()
+	    .filter_map( |(key, evolutions)| {
+		let latest_addr = evolutions.last()?.to_owned();
+		Some( (key, latest_addr) )
+	    })
+	    .collect()
+    )
+}
+
 
 #[hdk_extern]
 pub fn group_auth_anchor_hash(input: GroupAuthInput) -> ExternResult<EntryHash> {
@@ -319,6 +310,32 @@ pub fn group_auth_anchor_hash(input: GroupAuthInput) -> ExternResult<EntryHash> 
 #[hdk_extern]
 pub fn group_auth_archive_anchor_hash(input: GroupAuthInput) -> ExternResult<EntryHash> {
     Ok( hash_entry( GroupAuthArchiveAnchorEntry::new( input.group_id, input.author ) )? )
+}
+
+
+#[hdk_extern]
+pub fn create_content_link(input: CreateContentLinkInput) -> ExternResult<ActionHash> {
+    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.content_target );
+    let anchor = GroupAuthAnchorEntry( input.group_id, input.author );
+    let anchor_hash = hash_entry( &anchor )?;
+
+    create_if_not_exists( &anchor )?;
+
+    Ok( create_link( anchor_hash, input.content_target, LinkTypes::Content, () )? )
+}
+
+
+#[hdk_extern]
+pub fn create_content_update_link(input: CreateContentUpdateLinkInput) -> ExternResult<ActionHash> {
+    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.content_target );
+    let anchor = GroupAuthAnchorEntry( input.group_id, input.author );
+    let anchor_hash = hash_entry( &anchor )?;
+
+    create_if_not_exists( &anchor )?;
+
+    let tag = format!("{}:{}", input.content_id, input.content_prev_rev );
+
+    Ok( create_link( anchor_hash, input.content_target, LinkTypes::ContentUpdate, tag.into_bytes() )? )
 }
 
 
@@ -336,4 +353,62 @@ pub fn delete_content_link(input: GetLinksInput<LinkTypes>) -> ExternResult<Vec<
     }
 
     Ok( deleted )
+}
+
+
+#[hdk_extern]
+pub fn get_group_content_latest(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
+    match input.full_trace {
+	None | Some(false) => get_group_content_latest_shortcuts( input ),
+	Some(true) => get_group_content_latest_full_trace( input ),
+    }
+}
+
+#[hdk_extern]
+pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
+    debug!("Get latest group content: {}", input.group_id );
+    let latest_addr = latest_evolution( &input.group_id )?;
+    let record = must_get( &latest_addr )?;
+    let group_rev = record.action_address().to_owned();
+    let group : GroupEntry = record.try_into()?;
+
+    let mut archived_updates : Vec<ActionHash> = vec![];
+    let auth_archive_anchors = GroupEntry::group_auth_archive_addrs( &group_rev )?;
+
+    debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
+    for auth_archive_addr in auth_archive_anchors.iter() {
+	let anchor : GroupAuthArchiveAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
+
+	let archive_updates = anchor.update_targets()?;
+	let update_actions : Vec<ActionHash> = archive_updates.iter()
+	    .cloned()
+	    .filter_map(|target| target.into_action_hash() )
+	    .collect();
+	debug!("Removed {}/{} archive updates because they were not ActionHash targets", archive_updates.len() - update_actions.len(), archive_updates.len() );
+	archived_updates.extend( update_actions );
+    }
+
+    // let base_addr = input.content_id.clone().into_action_hash()
+    // 	.ok_or(guest_error!(format!("Content ID ({}) must be an action hash", input.content_id )))?;
+
+    Ok(
+	trace_evolutions_using_authorities_with_exceptions(
+	    &input.content_id, // base_addr,
+	    &group.authorities(),
+	    &archived_updates
+	)?.last().unwrap().to_owned().into()
+    )
+}
+
+
+#[hdk_extern]
+pub fn get_group_content_latest_shortcuts(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
+    let content_evolutions : EvolutionMap = trace_all_group_content_evolutions_shortcuts( input.group_id )?
+	.into_iter().collect();
+
+    Ok(
+	content_evolutions.get( &input.content_id.clone().into() )
+	    .ok_or(guest_error!(format!("Content ID ({}) is not in group content: {:?}", input.content_id, content_evolutions.keys() )))?
+	    .last().unwrap().to_owned()
+    )
 }

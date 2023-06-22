@@ -1,5 +1,6 @@
 
 import { expect }			from 'chai';
+import { faker }			from '@faker-js/faker';
 
 
 export async function expect_reject ( cb, error, message ) {
@@ -25,3 +26,37 @@ export function linearSuite ( name, setup_fn ) {
 	setup_fn.call( this );
     });
 }
+
+export function createGroupInput ( admins, ...members ) {
+    return {
+	"admins": admins,
+	"members": [ ...members ],
+
+	"published_at":		Date.now(),
+	"last_updated":		Date.now(),
+	"metadata":		{},
+    };
+};
+
+export function createContentInput ( author, group_id, group_rev ) {
+    return {
+	"text":			faker.lorem.sentence(),
+	"author":		author,
+	"group_ref": {
+	    "id":		group_id,
+	    "rev":		group_rev,
+	},
+	// "group_ref":		[ group_id, group_rev ],
+
+	"published_at":		Date.now(),
+	"last_updated":		Date.now(),
+    };
+};
+
+
+export default {
+    expect_reject,
+    linearSuite,
+    createGroupInput,
+    createContentInput,
+};

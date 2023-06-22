@@ -803,6 +803,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "general_csr"
+version = "0.0.0"
+dependencies = [
+ "hc_hdk_extensions",
+ "hdk",
+ "serde",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"

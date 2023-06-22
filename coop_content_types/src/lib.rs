@@ -192,6 +192,25 @@ pub struct CreateContentUpdateLinkInput {
     pub content_target: AnyDhtHash,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GroupAuthInput {
+    pub group_id: ActionHash,
+    pub author: AgentPubKey,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GetAllGroupContentInput {
+    pub group_id: ActionHash,
+    pub full_trace: Option<bool>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GetGroupContentInput {
+    pub group_id: ActionHash,
+    pub content_id: ActionHash,
+    pub full_trace: Option<bool>,
+}
+
 
 
 //
@@ -308,13 +327,32 @@ where
 #[macro_export]
 macro_rules! call_coop_content_csr {
     ( $zome:literal, $fn:literal, $($input:tt)+ ) => {
-	hdk::prelude::call(
+	match hdk::prelude::call(
 	    hdk::prelude::CallTargetCell::Local,
 	    $zome,
 	    $fn.into(),
 	    None,
 	    $($input)+,
-	)?;
+	)? {
+	    ZomeCallResponse::Ok(extern_io) => Ok(extern_io),
+	    ZomeCallResponse::NetworkError(msg) => Err(hdk_extensions::guest_error!(format!("{}", msg))),
+	    ZomeCallResponse::CountersigningSession(msg) => Err(hdk_extensions::guest_error!(format!("{}", msg))),
+	    _ => Err(hdk_extensions::guest_error!(format!("Zome call response: Unauthorized"))),
+	}
+    };
+}
+
+#[macro_export]
+macro_rules! call_coop_content_csr_decode {
+    ( $zome:literal, $fn:literal, $($input:tt)+ ) => {
+	coop_content_types::call_coop_content_csr!( $zome, $fn, $($input)+ )?
+	    .decode()
+	    .map_err(|err| hdk::prelude::wasm_error!(hdk::prelude::WasmErrorInner::from(err)) )
+    };
+    ( $into_type:ident, $zome:literal, $fn:literal, $($input:tt)+ ) => {
+	coop_content_types::call_coop_content_csr!( $zome, $fn, $($input)+ )?
+	    .decode::<$into_type>()
+	    .map_err(|err| hdk::prelude::wasm_error!(hdk::prelude::WasmErrorInner::from(err)) )
     };
 }
 
@@ -331,21 +369,24 @@ where
 #[macro_export]
 macro_rules! attach_content_to_group {
     ( $zome:literal, $($def:tt)* ) => {
-	use coop_content_types::GroupRef;
-	let input = coop_content_types::AttachContentMacroInput $($def)*;
+	{
+	    use coop_content_types::GroupRef;
+	    let input = coop_content_types::AttachContentMacroInput $($def)*;
 
-	coop_content_types::call_coop_content_csr!(
-	    $zome,
-	    "create_content_link",
-	    coop_content_types::CreateContentLinkInput {
-		group_id: input.entry.group_ref().0,
-		author: hdk_extensions::agent_id()?,
-		content_target: input.target.clone().into(),
-	    }
-	);
+	    coop_content_types::call_coop_content_csr_decode!(
+		ActionHash,
+		$zome,
+		"create_content_link",
+		coop_content_types::CreateContentLinkInput {
+		    group_id: input.entry.group_ref().0,
+		    author: hdk_extensions::agent_id()?,
+		    content_target: input.target.clone().into(),
+		}
+	    )
+	}
     };
     ( $($def:tt)* ) => {
-	attach_content_to_group!( "coop_content_csr", $($def)* )
+	coop_content_types::attach_content_to_group!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -353,30 +394,97 @@ macro_rules! attach_content_to_group {
 #[macro_export]
 macro_rules! attach_content_update_to_group {
     ( $zome:literal, $($def:tt)* ) => {
-	use coop_content_types::GroupRef;
-	let input = coop_content_types::AttachContentMacroInput $($def)*;
-	let history = hdk_extensions::trace_origin( &input.target )?;
+	{
+	    use coop_content_types::GroupRef;
+	    let input = coop_content_types::AttachContentMacroInput $($def)*;
+	    let history = hdk_extensions::trace_origin( &input.target )?;
 
-	if history.len() < 2 {
-	    Err(wasm_error!(WasmErrorInner::Guest(format!("History of target {} is empty", input.target ))))?
-	}
-
-	let content_id = &history[ history.len() - 1 ].0;
-	let content_prev_rev = &history[1].0;
-
-	coop_content_types::call_coop_content_csr!(
-	    $zome,
-	    "create_content_update_link",
-	    coop_content_types::CreateContentUpdateLinkInput {
-		group_id: input.entry.group_ref().0,
-		author: hdk_extensions::agent_id()?,
-		content_id: content_id.clone().into(),
-		content_prev_rev: content_prev_rev.clone().into(),
-		content_target: input.target.clone().into(),
+	    if history.len() < 2 {
+		Err(hdk_extensions::guest_error!(format!("History of target {} is empty", input.target )))?
 	    }
-	);
+
+	    let content_id = &history[ history.len() - 1 ].0;
+	    let content_prev_rev = &history[1].0;
+
+	    coop_content_types::call_coop_content_csr_decode!(
+		ActionHash,
+		$zome,
+		"create_content_update_link",
+		coop_content_types::CreateContentUpdateLinkInput {
+		    group_id: input.entry.group_ref().0,
+		    author: hdk_extensions::agent_id()?,
+		    content_id: content_id.clone().into(),
+		    content_prev_rev: content_prev_rev.clone().into(),
+		    content_target: input.target.clone().into(),
+		}
+	    )
+	}
     };
     ( $($def:tt)* ) => {
-	attach_content_update_to_group!( "coop_content_csr", $($def)* )
+	coop_content_types::attach_content_update_to_group!( "coop_content_csr", $($def)* )
+    };
+}
+
+
+#[derive(Clone)]
+pub struct GetGroupContentMacroInput {
+    pub group_id: ActionHash,
+    pub content_id: ActionHash,
+}
+
+#[macro_export]
+macro_rules! get_group_content_latest {
+    ( $zome:literal, $($def:tt)* ) => {
+	{
+	    let input = coop_content_types::GetGroupContentMacroInput $($def)*;
+	    let history = hdk_extensions::trace_origin( &input.content_id )?;
+
+	    if history.len() < 1 {
+		Err(hdk_extensions::guest_error!(format!("Unexpected state")))?
+	    }
+
+	    if input.content_id != history[ history.len() - 1 ].0.clone().into() {
+		Err(hdk_extensions::guest_error!(format!("Given 'content_id' must be an ID (create action); not an update action")))?
+	    }
+
+	    coop_content_types::call_coop_content_csr_decode!(
+		ActionHash,
+		$zome,
+		"get_group_content_latest_shortcuts",
+		coop_content_types::GetGroupContentInput {
+		    group_id: input.group_id,
+		    content_id: input.content_id,
+		    full_trace: None,
+		}
+	    )
+	}
+    };
+    ( $($def:tt)* ) => {
+	coop_content_types::get_group_content_latest!( "coop_content_csr", $($def)* )
+    };
+}
+
+
+#[derive(Clone)]
+pub struct GetAllGroupContentMacroInput {
+    pub group_id: ActionHash,
+}
+
+#[macro_export]
+macro_rules! get_all_group_content_latest {
+    ( $zome:literal, $($def:tt)* ) => {
+	{
+	    type LinkPointerMap = Vec<(hdk::prelude::AnyLinkableHash, hdk::prelude::AnyLinkableHash)>;
+	    let input = coop_content_types::GetAllGroupContentMacroInput $($def)*;
+	    coop_content_types::call_coop_content_csr_decode!(
+		LinkPointerMap,
+		$zome,
+		"get_all_group_content_targets_shortcuts",
+		input.group_id
+	    )
+	}
+    };
+    ( $($def:tt)* ) => {
+	coop_content_types::get_all_group_content_latest!( "coop_content_csr", $($def)* )
     };
 }
