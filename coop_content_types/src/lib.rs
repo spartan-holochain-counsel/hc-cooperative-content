@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
 use hdi::prelude::*;
-use hdk::prelude::Path;
-// use hdk::hash_path::path::{ Component };
 use thiserror::Error;
 use hdi_extensions::{
     get_root_origin,
@@ -59,6 +57,7 @@ macro_rules! common_fields {
 pub struct GroupEntry {
     pub admins: Vec<AgentPubKey>,
     pub members: Vec<AgentPubKey>,
+    pub deleted: Option<bool>,
 
     // common fields
     pub published_at: u64,
@@ -105,15 +104,6 @@ pub struct AuthoritiesDiff {
     pub removed: Vec<AgentPubKey>,
     pub intersection: Vec<AgentPubKey>,
 }
-
-
-
-//
-// Path Entry
-//
-#[hdk_entry_helper]
-#[derive(Clone)]
-pub struct PathEntry( pub Path );
 
 
 
@@ -179,17 +169,15 @@ impl GroupAuthAnchor {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CreateContentLinkInput {
     pub group_id: ActionHash,
-    pub author: AgentPubKey,
-    pub content_target: AnyDhtHash,
+    pub content_target: AnyLinkableHash,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CreateContentUpdateLinkInput {
     pub group_id: ActionHash,
-    pub author: AgentPubKey,
-    pub content_id: AnyDhtHash,
-    pub content_prev_rev: AnyDhtHash,
-    pub content_target: AnyDhtHash,
+    pub content_id: AnyLinkableHash,
+    pub content_prev: AnyLinkableHash,
+    pub content_next: AnyLinkableHash,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -207,7 +195,7 @@ pub struct GetAllGroupContentInput {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GetGroupContentInput {
     pub group_id: ActionHash,
-    pub content_id: ActionHash,
+    pub content_id: AnyLinkableHash,
     pub full_trace: Option<bool>,
 }
 
@@ -379,7 +367,6 @@ macro_rules! attach_content_to_group {
 		"create_content_link",
 		coop_content_types::CreateContentLinkInput {
 		    group_id: input.entry.group_ref().0,
-		    author: hdk_extensions::agent_id()?,
 		    content_target: input.target.clone().into(),
 		}
 	    )
@@ -412,10 +399,9 @@ macro_rules! attach_content_update_to_group {
 		"create_content_update_link",
 		coop_content_types::CreateContentUpdateLinkInput {
 		    group_id: input.entry.group_ref().0,
-		    author: hdk_extensions::agent_id()?,
 		    content_id: content_id.clone().into(),
-		    content_prev_rev: content_prev_rev.clone().into(),
-		    content_target: input.target.clone().into(),
+		    content_prev: content_prev_rev.clone().into(),
+		    content_next: input.target.clone().into(),
 		}
 	    )
 	}
@@ -429,7 +415,7 @@ macro_rules! attach_content_update_to_group {
 #[derive(Clone)]
 pub struct GetGroupContentMacroInput {
     pub group_id: ActionHash,
-    pub content_id: ActionHash,
+    pub content_id: AnyLinkableHash,
 }
 
 #[macro_export]
@@ -437,7 +423,8 @@ macro_rules! get_group_content_latest {
     ( $zome:literal, $($def:tt)* ) => {
 	{
 	    let input = coop_content_types::GetGroupContentMacroInput $($def)*;
-	    let history = hdk_extensions::trace_origin( &input.content_id )?;
+	    let action_addr = hdk_extensions::resolve_action_addr( &input.content_id )?;
+	    let history = hdk_extensions::trace_origin( &action_addr )?;
 
 	    if history.len() < 1 {
 		Err(hdk_extensions::guest_error!(format!("Unexpected state")))?

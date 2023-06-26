@@ -7,6 +7,7 @@ use hdk_extensions::{
     agent_id,
     must_get,
     exists,
+    resolve_action_addr,
     // trace_evolutions,
     latest_evolution,
     trace_evolutions_using_authorities_with_exceptions,
@@ -70,6 +71,12 @@ where
 fn init(_: ()) -> ExternResult<InitCallbackResult> {
     debug!("'{}' init", *ZOME_NAME );
     Ok(InitCallbackResult::Pass)
+}
+
+
+#[hdk_extern]
+fn whoami(_: ()) -> ExternResult<AgentInfo> {
+    Ok( agent_info()? )
 }
 
 
@@ -256,10 +263,15 @@ pub fn trace_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ext
     debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
     for auth_archive_addr in auth_archive_anchors.iter() {
 	let anchor : GroupAuthArchiveAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
+	debug!("Auth archive anchor: {:#?}", anchor );
 
-	targets.extend( anchor.create_targets()? );
+	let content_ids = anchor.create_targets()?;
+	debug!("Found {} content IDs: {:#?}", content_ids.len(), content_ids );
+	targets.extend( content_ids );
 
-	for (_,base,target) in anchor.shortcuts()? {
+	let shortcuts = anchor.shortcuts()?;
+	debug!("Found {} content update shortcuts: {:#?}", shortcuts.len(), shortcuts );
+	for (_,base,target) in shortcuts {
 	    updates.insert( base, target );
 	}
     }
@@ -269,10 +281,15 @@ pub fn trace_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ext
     debug!("Found {} current authorities for group rev '{}'", group_auth_anchors.len(), group_rev );
     for auth_anchor_addr in group_auth_anchors.iter() {
 	let anchor : GroupAuthAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
+	debug!("Auth anchor: {:#?}", anchor );
 
-	targets.extend( anchor.create_targets()? );
+	let content_ids = anchor.create_targets()?;
+	debug!("Found {} content IDs: {:#?}", content_ids.len(), content_ids );
+	targets.extend( content_ids );
 
-	for (_,base,target) in anchor.shortcuts()? {
+	let shortcuts = anchor.shortcuts()?;
+	debug!("Found {} content update shortcuts: {:#?}", shortcuts.len(), shortcuts );
+	for (_,base,target) in shortcuts {
 	    updates.insert( base, target );
 	}
     }
@@ -315,8 +332,9 @@ pub fn group_auth_archive_anchor_hash(input: GroupAuthInput) -> ExternResult<Ent
 
 #[hdk_extern]
 pub fn create_content_link(input: CreateContentLinkInput) -> ExternResult<ActionHash> {
-    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.content_target );
-    let anchor = GroupAuthAnchorEntry( input.group_id, input.author );
+    let author = agent_id()?;
+    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, author, input.content_target );
+    let anchor = GroupAuthAnchorEntry( input.group_id, author );
     let anchor_hash = hash_entry( &anchor )?;
 
     create_if_not_exists( &anchor )?;
@@ -327,15 +345,16 @@ pub fn create_content_link(input: CreateContentLinkInput) -> ExternResult<Action
 
 #[hdk_extern]
 pub fn create_content_update_link(input: CreateContentUpdateLinkInput) -> ExternResult<ActionHash> {
-    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, input.author, input.content_target );
-    let anchor = GroupAuthAnchorEntry( input.group_id, input.author );
+    let author = agent_id()?;
+    let tag = format!("{}:{}", input.content_id, input.content_prev );
+    let anchor = GroupAuthAnchorEntry( input.group_id, author );
     let anchor_hash = hash_entry( &anchor )?;
+    debug!("Auth anchor: {:#?}", anchor );
 
     create_if_not_exists( &anchor )?;
 
-    let tag = format!("{}:{}", input.content_id, input.content_prev_rev );
-
-    Ok( create_link( anchor_hash, input.content_target, LinkTypes::ContentUpdate, tag.into_bytes() )? )
+    debug!("Creating content update link from {} --'{}'--> {}", anchor_hash, tag, input.content_next );
+    Ok( create_link( anchor_hash, input.content_next, LinkTypes::ContentUpdate, tag.into_bytes() )? )
 }
 
 
@@ -367,6 +386,7 @@ pub fn get_group_content_latest(input: GetGroupContentInput) -> ExternResult<Any
 #[hdk_extern]
 pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
     debug!("Get latest group content: {}", input.group_id );
+    let base_addr = resolve_action_addr( &input.content_id )?;
     let latest_addr = latest_evolution( &input.group_id )?;
     let record = must_get( &latest_addr )?;
     let group_rev = record.action_address().to_owned();
@@ -388,12 +408,9 @@ pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> Exter
 	archived_updates.extend( update_actions );
     }
 
-    // let base_addr = input.content_id.clone().into_action_hash()
-    // 	.ok_or(guest_error!(format!("Content ID ({}) must be an action hash", input.content_id )))?;
-
     Ok(
 	trace_evolutions_using_authorities_with_exceptions(
-	    &input.content_id, // base_addr,
+	    &base_addr,
 	    &group.authorities(),
 	    &archived_updates
 	)?.last().unwrap().to_owned().into()
@@ -406,6 +423,7 @@ pub fn get_group_content_latest_shortcuts(input: GetGroupContentInput) -> Extern
     let content_evolutions : EvolutionMap = trace_all_group_content_evolutions_shortcuts( input.group_id )?
 	.into_iter().collect();
 
+    debug!("Looking for {} in: {:#?}", input.content_id, content_evolutions );
     Ok(
 	content_evolutions.get( &input.content_id.clone().into() )
 	    .ok_or(guest_error!(format!("Content ID ({}) is not in group content: {:?}", input.content_id, content_evolutions.keys() )))?

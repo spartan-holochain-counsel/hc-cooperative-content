@@ -29,6 +29,6 @@ pub fn validation(
 	    debug!("Checking EntryTypes::GroupAuthArchiveAnchor({:#?})", anchor );
 	    valid!()
 	},
-	_ => invalid!(format!("Create validation not implemented for entry type: {:#?}", create.entry_type )),
+	// _ => invalid!(format!("Create validation not implemented for entry type: {:#?}", create.entry_type )),
     }
 }

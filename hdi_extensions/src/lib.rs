@@ -6,9 +6,10 @@ use hdi::prelude::{
     wasm_error,
     ExternResult, WasmError, WasmErrorInner,
     Deserialize, Serialize, SerializedBytesError,
-    ActionHash, EntryHash, AnyLinkableHash,
-    Record, Action, Entry,
+    ActionHash, EntryHash, ExternalHash, AnyDhtHash, AnyLinkableHash,
+    Record, Action, Entry, Create, EntryCreationAction,
     AppEntryDef, ScopedEntryDefIndex,
+    EntryType, EntryTypesHelper,
     LinkTypeFilter, LinkTypeFilterExt, LinkTag,
 };
 use hdi::prelude::holo_hash::AnyLinkableHashPrimitive;
@@ -146,12 +147,33 @@ macro_rules! scoped_type_connector {
 //
 // HoloHash Extentions
 //
-pub trait AnyLinkableHashTransformer {
+pub trait AnyLinkableHashTransformer : Sized {
+    fn try_from_string(input: &str) -> ExternResult<Self>;
     fn must_be_action_hash(&self) -> ExternResult<ActionHash>;
     fn must_be_entry_hash(&self) -> ExternResult<EntryHash>;
 }
 
 impl AnyLinkableHashTransformer for AnyLinkableHash {
+    fn try_from_string(input: &str) -> ExternResult<Self> {
+	let action_result = ActionHash::try_from( input.to_string() );
+	let entry_result = EntryHash::try_from( input.to_string() );
+	let external_result = ExternalHash::try_from( input.to_string() );
+
+	Ok(
+	    match (action_result.is_ok(), entry_result.is_ok(), external_result.is_ok()) {
+		(true, false, false) => action_result.unwrap().into(),
+		(false, true, false) => entry_result.unwrap().into(),
+		(false, false, true) => external_result.unwrap().into(),
+		(false, false, false) => Err(guest_error!(
+		    format!("String '{}' must be an Action or Entry hash", input )
+		))?,
+		_ => Err(guest_error!(
+		    format!("String '{}' matched multiple hash types; this should not be possible", input )
+		))?,
+	    }
+	)
+    }
+
     fn must_be_action_hash(&self) -> ExternResult<ActionHash> {
 	match self.to_owned().into_action_hash() {
 	    Some(hash) => Ok( hash ),
@@ -168,6 +190,30 @@ impl AnyLinkableHashTransformer for AnyLinkableHash {
 		format!("Any-linkable hash must be an entry hash; not '{}'", self )
 	    ))?,
 	}
+    }
+}
+
+pub trait AnyDhtHashTransformer : Sized {
+    fn try_from_string(input: &str) -> ExternResult<Self>;
+}
+
+impl AnyDhtHashTransformer for AnyDhtHash {
+    fn try_from_string(input: &str) -> ExternResult<Self> {
+	let action_result = ActionHash::try_from( input.to_string() );
+	let entry_result = EntryHash::try_from( input.to_string() );
+
+	Ok(
+	    match (action_result.is_ok(), entry_result.is_ok()) {
+		(true, false) => action_result.unwrap().into(),
+		(false, true) => entry_result.unwrap().into(),
+		(false, false) => Err(guest_error!(
+		    format!("String '{}' must be an Action or Entry hash", input )
+		))?,
+		(true, true) => Err(guest_error!(
+		    format!("String '{}' matched Action and Entry hash; this should not be possible", input )
+		))?,
+	    }
+	)
     }
 }
 
@@ -203,6 +249,73 @@ where
     must_get_any_linkable_entry( addr )
 }
 
+pub fn get_create_action(action_addr: &ActionHash) -> ExternResult<(Record, Create)> {
+    let create_record = must_get_valid_record( action_addr.to_owned() )?;
+    let create_action = match create_record.action().clone() {
+	Action::Create(action) => action,
+	_ => Err(guest_error!(format!("Action address ({}) is not a create action", action_addr )))?,
+    };
+
+    Ok( (create_record, create_action) )
+}
+
+pub fn get_creation_action(action_addr: &ActionHash) -> ExternResult<EntryCreationAction> {
+    let create_record = must_get_valid_record( action_addr.to_owned() )?;
+    match create_record.signed_action.hashed.content {
+	Action::Create(create) => Ok( create.into() ),
+	Action::Update(update) => Ok( update.into() ),
+	_ => Err(guest_error!(format!("Action address ({}) is not a create action", action_addr ))),
+    }
+}
+
+pub fn get_app_entry<ET,A>(action: &A) -> ExternResult<ET>
+where
+    ET: EntryTypesHelper,
+    WasmError: From<<ET as EntryTypesHelper>::Error>,
+    A: Into<EntryCreationAction> + Clone,
+{
+    let action : EntryCreationAction = action.to_owned().into();
+    let entry_def = derive_app_entry_def( &action )?;
+    let entry = must_get_entry( action.entry_hash().to_owned() )?.content;
+
+    ET::deserialize_from_type(
+	entry_def.zome_index.clone(),
+	entry_def.entry_index.clone(),
+	&entry,
+    )?.ok_or(guest_error!(
+	format!("No match for entry def ({:?}) in expected entry types", entry_def )
+    ))
+}
+
+
+//
+// EntryTypesHelper extensions
+//
+pub fn derive_app_entry_def<A>(action: &A) -> ExternResult<AppEntryDef>
+where
+    A: Into<EntryCreationAction> + Clone,
+{
+    let action : EntryCreationAction = action.to_owned().into();
+    match action.entry_type().to_owned() {
+	EntryType::App(app_entry_def) => Ok( app_entry_def ),
+	entry_type => Err(guest_error!(
+	    format!("Expected an app entry type; not {:?}", entry_type )
+	)),
+    }
+}
+
+pub fn derive_app_entry_unit<ETU,A>(action: &A) -> ExternResult<ETU>
+where
+    ETU: TryFrom<ScopedEntryDefIndex, Error = WasmError>,
+    A: Into<EntryCreationAction> + Clone,
+{
+    let action : EntryCreationAction = action.to_owned().into();
+    let entry_def = derive_app_entry_def( &action )?;
+    ETU::try_from(ScopedEntryDefIndex {
+	zome_index: entry_def.zome_index,
+	zome_type: entry_def.entry_index,
+    })
+}
 
 
 //

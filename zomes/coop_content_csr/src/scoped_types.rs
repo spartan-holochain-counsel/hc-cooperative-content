@@ -1,6 +1,9 @@
 pub mod entry_traits;
 
 use hdk::prelude::*;
+use hdk_extensions::{
+    AnyLinkableHashTransformer,
+};
 use coop_content::{
     LinkTypes,
 
@@ -88,8 +91,8 @@ impl GroupAuthLinks for GroupAuthAnchorEntry {
 		    })?;
 
 		Some((
-		    AnyLinkableHash::from( ActionHash::try_from( tag_id.to_string()).ok()? ),
-		    AnyLinkableHash::from( ActionHash::try_from( tag_rev.to_string()).ok()? ),
+		    AnyLinkableHash::try_from_string( tag_id ).ok()?,
+		    AnyLinkableHash::try_from_string( tag_rev ).ok()?,
 		    link.target
 		))
 	    })
@@ -136,8 +139,8 @@ impl GroupAuthArchiveLinks for GroupAuthArchiveAnchorEntry {
 		    })?;
 
 		Some((
-		    AnyLinkableHash::from( ActionHash::try_from( tag_id.to_string()).ok()? ),
-		    AnyLinkableHash::from( ActionHash::try_from( tag_rev.to_string()).ok()? ),
+		    AnyLinkableHash::try_from_string( tag_id ).ok()?,
+		    AnyLinkableHash::try_from_string( tag_rev ).ok()?,
 		    link.target
 		))
 	    })

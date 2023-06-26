@@ -59,24 +59,43 @@ tests/%.dna:			build FORCE
 	cd tests; make $*.dna
 test-setup:			tests/node_modules
 
-test:				test-unit test-integration		test-e2e
-test-debug:			test-unit test-integration-debug	test-e2e-debug
+test:				test-unit test-integration
+test-debug:			test-unit test-integration-debug
 
 test-unit:			test-unit-coop_content
 test-unit-%:
 	cd zomes;		RUST_BACKTRACE=1 cargo test $* -- --nocapture
 
-test-integration:		test-setup test-model
-test-integration-debug:		test-setup test-model-debug
+test-integration:		test-setup	\
+				test-general	\
+				test-minimal	\
+				test-external	\
+				test-model
+test-integration-debug:		test-setup		\
+				test-general-debug	\
+				test-minimal-debug	\
+				test-external-debug	\
+				test-model-debug
 
 GENERAL_DNA			= tests/general_dna.dna
+MINIMAL_DNA			= tests/minimal_dna.dna
 MODEL_DNA			= tests/model_dna.dna
-TEST_DNAS			= $(GENERAL_DNA) $(MODEL_DNA)
+TEST_DNAS			= $(GENERAL_DNA) $(MINIMAL_DNA) $(MODEL_DNA)
 
-test-general:			test-setup build $(TEST_DNAS)
+test-general:			test-setup build $(GENERAL_DNA)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_general_dna.js
-test-general-debug:		test-setup build $(TEST_DNAS)
+test-general-debug:		test-setup build $(GENERAL_DNA)
 	cd tests; RUST_LOG=info LOG_LEVEL=trace npx mocha integration/test_general_dna.js
+
+test-minimal:			test-setup build $(MINIMAL_DNA)
+	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_minimal_dna.js
+test-minimal-debug:		test-setup build $(MINIMAL_DNA)
+	cd tests; RUST_LOG=info LOG_LEVEL=trace npx mocha integration/test_minimal_dna.js
+
+test-external:			test-setup build $(MINIMAL_DNA)
+	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_minimal_external_pointers.js
+test-external-debug:		test-setup build $(MINIMAL_DNA)
+	cd tests; RUST_LOG=info LOG_LEVEL=trace npx mocha integration/test_minimal_external_pointers.js
 
 test-model:			test-setup build $(TEST_DNAS)
 	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_model_dna.js

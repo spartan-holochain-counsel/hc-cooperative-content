@@ -1,9 +1,11 @@
 use hdi::prelude::*;
+use holo_hash::AnyLinkableHashPrimitive;
 use hdk::prelude::debug;
 use hdi_extensions::{
     get_root_origin,
     must_get_any_linkable_entry,
     any_linkable_deserialize_check,
+    AnyLinkableHashTransformer,
     // Macros
     valid, invalid, guest_error,
 };
@@ -69,17 +71,24 @@ pub fn validation(
 		None => invalid!(format!("Content update link has malformed tag: {}", tag_str )),
 	    };
 
-	    let content_id = match ActionHash::try_from( tag_id.to_string() ) {
+	    let content_id = match AnyLinkableHash::try_from_string( tag_id ) {
 		Ok(addr) => addr,
 		Err(err) => invalid!(format!("Invalid tag part 1: {}", err )),
 	    };
-	    let content_rev = match ActionHash::try_from( tag_rev.to_string() ) {
+	    let content_rev = match AnyLinkableHash::try_from_string( tag_rev ) {
 		Ok(addr) => addr,
 		Err(err) => invalid!(format!("Invalid tag part 2: {}", err )),
 	    };
 
-	    if content_id != get_root_origin( &content_rev )?.0 {
-		invalid!(format!("Tag parts do not match; Content update link tag ID is not the root of the tag revision: {}", tag_str ))
+	    // Is this check necessary?  Can't we just let group authorities define any pointers
+	    // that they want?
+	    if let (
+		AnyLinkableHashPrimitive::Action(id_addr),
+		AnyLinkableHashPrimitive::Action(rev_addr)
+	    ) = (content_id.into_primitive(), content_rev.into_primitive()) {
+		if id_addr != get_root_origin( &rev_addr )?.0 {
+		    invalid!(format!("Tag parts do not match; Content update link tag ID is not the root of the tag revision: {}", tag_str ))
+		}
 	    }
 
 	    valid!()

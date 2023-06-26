@@ -542,7 +542,7 @@ function phase3_tests () {
 	    intoStruct( content, ContentStruct ),
 	]);
 	const targets			= new Set( contents.map( pair => String(pair[0]) ) );
-	log.debug("Group targets:", targets );
+	log.debug("Group content targets: %s", targets );
 
 	const expected_targets	= [
 	    c1a_addr,
@@ -701,6 +701,12 @@ function general_tests () {
 	await expect_reject( async () => {
 	    await clients.alice.call( DNA_NAME, COOP_ZOME, "get_group", new ActionHash(crypto.randomBytes(32)) );
 	}, "Record not found" );
+    });
+
+    it("should reject group delete", async function () {
+	await expect_reject( async () => {
+	    await clients.alice.call( DNA_NAME, EVIL_ZOME, "delete_group", g1_addr );
+	}, "cannot be deleted" );
     });
 
 }

@@ -140,3 +140,12 @@ pub fn invalid_group_auth_link_base(input: InvalidLinkBaseInput) -> ExternResult
 
     Ok(())
 }
+
+
+#[hdk_extern]
+pub fn delete_group(addr: ActionHash) -> ExternResult<()> {
+    debug!("Delete group: {}", addr );
+    delete_entry( addr )?;
+
+    Ok(())
+}

@@ -2,10 +2,13 @@ use hdk::prelude::{
     get, get_details, agent_info,
     debug, wasm_error,
     ExternResult, WasmError, WasmErrorInner, GetOptions,
-    AgentPubKey, ActionHash, AnyDhtHash,
+    AgentPubKey, ActionHash, AnyDhtHash, AnyLinkableHash,
     Record, Action, Details, RecordDetails, SignedHashed,
 };
-use hdk::prelude::holo_hash::AnyDhtHashPrimitive;
+use hdk::prelude::holo_hash::{
+    AnyDhtHashPrimitive,
+    AnyLinkableHashPrimitive,
+};
 use thiserror::Error;
 
 pub use hdi_extensions;
@@ -91,7 +94,28 @@ where
 //
 // Tracing Actions
 //
-pub fn trace_evolutions (action_address: &ActionHash) -> ExternResult<Vec<ActionHash>> {
+pub fn resolve_action_addr<T>(addr: &T) -> ExternResult<ActionHash>
+where
+    T: Into<AnyLinkableHash> + Clone,
+{
+    let addr : AnyLinkableHash = addr.to_owned().into();
+    match addr.into_primitive() {
+	AnyLinkableHashPrimitive::Entry(entry_hash) => {
+	    Ok(
+		get( entry_hash.to_owned(), GetOptions::latest() )?
+		    .ok_or(HdkExtError::RecordNotFound(&entry_hash.into()))?
+		    .action_address().to_owned()
+	    )
+	},
+	AnyLinkableHashPrimitive::Action(action_hash) => Ok( action_hash ),
+	AnyLinkableHashPrimitive::External(external_hash) => Err(guest_error!(
+	    format!("External hash ({}) will not have a corresponding action", external_hash )
+	)),
+    }
+}
+
+
+pub fn trace_evolutions(action_address: &ActionHash) -> ExternResult<Vec<ActionHash>> {
     let mut evolutions = vec![];
     let mut next_addr = Some(action_address.to_owned());
 

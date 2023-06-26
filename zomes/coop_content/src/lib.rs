@@ -21,19 +21,12 @@ pub enum EntryTypes {
 
     // Anchors
     #[entry_def]
-    Path(PathEntry),
-
-    #[entry_def]
     GroupAuthAnchor(GroupAuthAnchorEntry),
 
     #[entry_def]
     GroupAuthArchiveAnchor(GroupAuthArchiveAnchorEntry),
 }
 
-scoped_type_connector!(
-    EntryTypesUnit::Path,
-    EntryTypes::Path( PathEntry )
-);
 scoped_type_connector!(
     EntryTypesUnit::Group,
     EntryTypes::Group( GroupEntry )
