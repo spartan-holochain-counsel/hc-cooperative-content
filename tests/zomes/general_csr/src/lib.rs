@@ -26,12 +26,12 @@ fn get_action(addr: ActionHash) -> ExternResult<Action> {
 #[hdk_extern]
 fn get_entry(addr: AnyDhtHash) -> ExternResult<Entry> {
     let entry_hash = match addr.into_primitive() {
-	AnyDhtHashPrimitive::Entry(addr) => addr,
-	AnyDhtHashPrimitive::Action(addr) => {
-	    get_action( addr.clone() )?.entry_hash()
-		.ok_or(guest_error!(format!("Action ({}) does not have an entry", addr )))?
-		.to_owned()
-	},
+        AnyDhtHashPrimitive::Entry(addr) => addr,
+        AnyDhtHashPrimitive::Action(addr) => {
+            get_action( addr.clone() )?.entry_hash()
+                .ok_or(guest_error!(format!("Action ({}) does not have an entry", addr )))?
+                .to_owned()
+        },
     };
 
     Ok( must_get_entry(entry_hash)?.content )

@@ -37,10 +37,10 @@ pub struct TraceAuthoritiesInput {
 }
 impl fmt::Display for TraceAuthoritiesInput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-	write!(f, "Trace {} via Authorities({:#?})",
-	       self.content_id,
-	       self.authorities.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
-	)
+        write!(f, "Trace {} via Authorities({:#?})",
+               self.content_id,
+               self.authorities.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+        )
     }
 }
 
@@ -48,10 +48,10 @@ impl fmt::Display for TraceAuthoritiesInput {
 pub fn trace_evolutions_using_authorities(input: TraceAuthoritiesInput) -> ExternResult<Vec<ActionHash>> {
     debug!("Get latest entry: {}", input );
     Ok(
-	hdk_extensions::trace_evolutions_using_authorities(
-	    &input.content_id,
-	    &input.authorities,
-	)?
+        hdk_extensions::trace_evolutions_using_authorities(
+            &input.content_id,
+            &input.authorities,
+        )?
     )
 }
 
@@ -64,11 +64,11 @@ pub struct TraceAuthoritiesExceptionsInput {
 }
 impl fmt::Display for TraceAuthoritiesExceptionsInput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-	write!(f, "Trace {} via Authorities({:#?}) with exceptions {:#?}",
-	       self.content_id,
-	       self.authorities.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
-	       self.exceptions.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
-	)
+        write!(f, "Trace {} via Authorities({:#?}) with exceptions {:#?}",
+               self.content_id,
+               self.authorities.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+               self.exceptions.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+        )
     }
 }
 
@@ -76,11 +76,11 @@ impl fmt::Display for TraceAuthoritiesExceptionsInput {
 pub fn trace_evolutions_using_authorities_with_exceptions(input: TraceAuthoritiesExceptionsInput) -> ExternResult<Vec<ActionHash>> {
     debug!("Get latest entry: {}", input );
     Ok(
-	hdk_extensions::trace_evolutions_using_authorities_with_exceptions(
-	    &input.content_id,
-	    &input.authorities,
-	    &input.exceptions,
-	)?
+        hdk_extensions::trace_evolutions_using_authorities_with_exceptions(
+            &input.content_id,
+            &input.authorities,
+            &input.exceptions,
+        )?
     )
 }
 

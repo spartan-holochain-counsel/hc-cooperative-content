@@ -13,22 +13,22 @@ pub fn validation(
     create: Create
 ) -> ExternResult<ValidateCallbackResult> {
     match app_entry {
-	EntryTypes::Group(group) => {
-	    debug!("Checking EntryTypes::Group({:#?})", group );
-	    if !group.admins.contains( &create.author ) {
-		invalid!("The author of a group entry must be an admin of the group".to_string())
-	    }
+        EntryTypes::Group(group) => {
+            debug!("Checking EntryTypes::Group({:#?})", group );
+            if !group.admins.contains( &create.author ) {
+                invalid!("The author of a group entry must be an admin of the group".to_string())
+            }
 
-	    valid!()
-	},
-	EntryTypes::GroupAuthAnchor(anchor) => {
-	    debug!("Checking EntryTypes::GroupAuthAnchor({:#?})", anchor );
-	    valid!()
-	},
-	EntryTypes::GroupAuthArchiveAnchor(anchor) => {
-	    debug!("Checking EntryTypes::GroupAuthArchiveAnchor({:#?})", anchor );
-	    valid!()
-	},
-	// _ => invalid!(format!("Create validation not implemented for entry type: {:#?}", create.entry_type )),
+            valid!()
+        },
+        EntryTypes::GroupAuthAnchor(anchor) => {
+            debug!("Checking EntryTypes::GroupAuthAnchor({:#?})", anchor );
+            valid!()
+        },
+        EntryTypes::GroupAuthArchiveAnchor(anchor) => {
+            debug!("Checking EntryTypes::GroupAuthArchiveAnchor({:#?})", anchor );
+            valid!()
+        },
+        // _ => invalid!(format!("Create validation not implemented for entry type: {:#?}", create.entry_type )),
     }
 }

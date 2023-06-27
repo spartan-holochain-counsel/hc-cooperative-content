@@ -70,10 +70,10 @@ pub fn delete_group_auth_link(input: InvalidGroupAuthInput) -> ExternResult<()> 
     let links = get_links( input.group_rev.clone(), LinkTypes::GroupAuth, None )?;
 
     for link in links {
-	if link.target == anchor_hash.clone().into() {
-	    debug!("Deleting link create: {}", link.create_link_hash );
-	    delete_link( link.create_link_hash.clone() )?;
-	}
+        if link.target == anchor_hash.clone().into() {
+            debug!("Deleting link create: {}", link.create_link_hash );
+            delete_link( link.create_link_hash.clone() )?;
+        }
     }
 
     Ok(())
