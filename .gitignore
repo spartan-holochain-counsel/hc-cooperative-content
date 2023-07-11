@@ -1,7 +1,9 @@
 .cargo
 target
 zomes/*.wasm
+hdi_extensions
+hdk_extensions
+tests/target
 tests/node_modules
 tests/*.dna
-tests/target
 tests/zomes/*.wasm

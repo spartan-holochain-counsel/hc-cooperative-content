@@ -130,3 +130,26 @@ update-hdk-version:
 	git grep -l $(PRE_HDK_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDK_VERSION)/$(NEW_HDK_VERSION)/g'
 update-hdi-version:
 	git grep -l $(PRE_HDI_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDI_VERSION)/$(NEW_HDI_VERSION)/g'
+
+
+#
+# Documentation
+#
+COOP_DOCS		= target/doc/coop_content/index.html
+test-docs:
+	cd zomes; cargo test --doc
+$(COOP_DOCS):		test-docs
+	cd zomes; cargo doc
+	@echo -e "\x1b[37mOpen docs in $(COOP_DOCS)\x1b[0m";
+docs:			$(COOP_DOCS)
+docs-watch:
+	@inotifywait -r -m -e modify		\
+		--includei '.*\.rs'		\
+			zomes/			\
+			hdi_extensions/		\
+			hdk_extensions/		\
+			coop_content_types	\
+	| while read -r dir event file; do	\
+		echo -e "\x1b[37m$$event $$dir$$file\x1b[0m";\
+		make docs;			\
+	done

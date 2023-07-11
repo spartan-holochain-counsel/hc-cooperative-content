@@ -1,7 +1,7 @@
 use hdi::prelude::*;
 use hdk::prelude::debug;
 use hdi_extensions::{
-    must_get_any_linkable_entry,
+    summon_app_entry,
     // Macros
     valid, invalid,
 };
@@ -33,8 +33,9 @@ pub fn validation(
             // Deletion is valid when
             // - the base is an archive anchor, if the author is an admin
             // - the base is an auth anchor, if the author is the matching anchor agent
-            let anchor : GroupAuthAnchor = must_get_any_linkable_entry( &base_address )?;
+            let anchor : GroupAuthAnchor = summon_app_entry( &base_address )?;
 
+            debug!("Base address anchor: {:#?}", anchor );
             match anchor {
                 GroupAuthAnchor::Active(entry) => {
                     if entry.1 != delete.author {
@@ -44,6 +45,7 @@ pub fn validation(
                 GroupAuthAnchor::Archive(entry) => {
                     let group : GroupEntry = must_get_valid_record( entry.0.clone() )?.try_into()?;
 
+                    debug!("Archive anchor group revision: {:#?}", group );
                     if !group.authorities().contains( &delete.author )  {
                         invalid!(format!("A content [update] link based on a group auth archive anchor can only be deleted by an admin in the anchor's group revision ({})", entry.0 ))
                     }

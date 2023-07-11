@@ -293,10 +293,10 @@ name = "coop_content"
 version = "0.0.0"
 dependencies = [
  "coop_content_types",
- "hc_hdi_extensions",
  "hdi",
  "hdk",
  "serde",
+ "whi_hdi_extensions",
 ]
 
 [[package]]
@@ -305,22 +305,22 @@ version = "0.0.0"
 dependencies = [
  "coop_content",
  "coop_content_types",
- "hc_hdk_extensions",
  "hdk",
  "lazy_static",
  "serde",
+ "whi_hdk_extensions",
 ]
 
 [[package]]
 name = "coop_content_types"
 version = "0.1.0"
 dependencies = [
- "hc_hdi_extensions",
  "hdi",
  "hdk",
  "rmpv",
  "serde",
  "thiserror",
+ "whi_hdk_extensions",
 ]
 
 [[package]]
@@ -825,24 +825,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
  "ahash",
-]
-
-[[package]]
-name = "hc_hdi_extensions"
-version = "0.1.0"
-dependencies = [
- "hdi",
- "serde",
-]
-
-[[package]]
-name = "hc_hdk_extensions"
-version = "0.1.0"
-dependencies = [
- "hc_hdi_extensions",
- "hdk",
- "serde",
- "thiserror",
 ]
 
 [[package]]
@@ -2664,6 +2646,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5abe520f0ab205366e9ac7d3e6b2fc71de44e32a2b58f2ec871b6b575bdcea3b"
 dependencies = [
  "wast",
+]
+
+[[package]]
+name = "whi_hdi_extensions"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "614eff7a5a4f4c62682f83928abd55feda3847d4c777e3d87d67bcd8517ffeba"
+dependencies = [
+ "hdi",
+ "holo_hash",
+ "serde",
+]
+
+[[package]]
+name = "whi_hdk_extensions"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01808ae8ee653dd00c87164d1e0b37be63172166489f1c3f1aa946218b178e9c"
+dependencies = [
+ "hdk",
+ "serde",
+ "thiserror",
+ "whi_hdi_extensions",
 ]
 
 [[package]]

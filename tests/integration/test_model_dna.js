@@ -65,14 +65,14 @@ function phase1_tests () {
 	    ],
 	    clients.bobby.cellAgent(), clients.carol.cellAgent(),
 	);
-	g1_addr				= await clients.alice.call( DNA_NAME, COOP_ZOME, "create_group", group_input );
+	g1_addr				= await clients.alice.call( DNA_NAME, GOOD_ZOME, "create_group", group_input );
 	log.debug("Group ID: %s", g1_addr );
 
 	// expect( g1_addr		).to.be.a("ActionHash");
 	expect( g1_addr		).to.be.a("Uint8Array");
 	expect( g1_addr		).to.have.length( 39 );
 
-	group				= intoStruct( await clients.alice.call( DNA_NAME, COOP_ZOME, "get_group", g1_addr ), GroupStruct );
+	group				= intoStruct( await clients.alice.call( DNA_NAME, GOOD_ZOME, "get_group", g1_addr ), GroupStruct );
 	log.debug( json.debug( group ) );
     });
 
@@ -156,10 +156,10 @@ function phase1_tests () {
 
     it("should get group content and find: C1a, C2a, C3", async function () {
 	const targets			= new Set(
-	    (await clients.david.call( DNA_NAME, COOP_ZOME, "get_all_group_content_targets", {
+	    (await clients.david.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
 		"group_id": g1_addr,
 	    }))
-		.map( pair => pair[1] )
+		.map( pair => pair[0][1] )
 		.map( addr => String(new HoloHash(addr)) )
 	);
 	log.debug("Group content targets: %s", targets );
@@ -181,7 +181,7 @@ function phase1_checks_tests () {
     // Static
     it("should reject group update because it requires counter-signing", async function () {
 	await expect_reject( async () => {
-	    await clients.alice.call( DNA_NAME, COOP_ZOME, "update_group", {
+	    await clients.alice.call( DNA_NAME, GOOD_ZOME, "update_group", {
 		"base": g1_addr,
 		"entry": Object.assign({}, group, {
 		    "admins": [ clients.alice.cellAgent() ],
@@ -233,7 +233,7 @@ function phase1_checks_tests () {
     });
 
     it("should reject content create because author group ID/revision are not related", async function () {
-	const g2_id			= await clients.bobby.call( DNA_NAME, COOP_ZOME, "create_group", createGroupInput(
+	const g2_id			= await clients.bobby.call( DNA_NAME, GOOD_ZOME, "create_group", createGroupInput(
 	    [ clients.bobby.cellAgent() ],
 	    clients.carol.cellAgent(),
 	));
@@ -263,7 +263,7 @@ function phase1_checks_tests () {
     // Dynamic
     it("should reject group update because agent (A3) is not an admin", async function () {
 	await expect_reject( async () => {
-	    await clients.carol.call( DNA_NAME, COOP_ZOME, "update_group", {
+	    await clients.carol.call( DNA_NAME, GOOD_ZOME, "update_group", {
 		"base": g1_addr,
 		"entry": group,
 	    });
@@ -301,7 +301,7 @@ function phase2_tests () {
 	    clients.bobby.cellAgent(), clients.david.cellAgent(),
 	];
 
-	const addr = g1a_addr		= await clients.alice.call( DNA_NAME, COOP_ZOME, "update_group", {
+	const addr = g1a_addr		= await clients.alice.call( DNA_NAME, GOOD_ZOME, "update_group", {
 	    "base": g1_addr,
 	    "entry": group,
 	});
@@ -310,7 +310,7 @@ function phase2_tests () {
 	expect( addr			).to.be.a("Uint8Array");
 	expect( addr			).to.have.length( 39 );
 
-	group				= intoStruct( await clients.alice.call( DNA_NAME, COOP_ZOME, "get_group", g1_addr ), GroupStruct );
+	group				= intoStruct( await clients.alice.call( DNA_NAME, GOOD_ZOME, "get_group", g1_addr ), GroupStruct );
 	log.debug( json.debug( group ) );
     });
 
@@ -354,7 +354,7 @@ function phase2_tests () {
 	});
 	log.debug("C2b Address: %s", new ActionHash(c2b_addr) );
 
-	let entry			= await clients.carol.call( DNA_NAME, GEN_ZOME, "get_entry", c2b_addr );
+	let entry			= await clients.carol.call( DNA_NAME, GEN_ZOME, "fetch_entry", c2b_addr );
 	let decoded			= msgpack.decode( entry.entry );
 
 	c2				= intoStruct( decoded, ContentStruct );
@@ -382,10 +382,10 @@ function phase2_tests () {
 
     it("should get group content and find: C1a, C2b, C3, C4", async function () {
 	const targets			= new Set(
-	    (await clients.david.call( DNA_NAME, COOP_ZOME, "get_all_group_content_targets", {
+	    (await clients.david.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
 		"group_id": g1_addr,
 	    }))
-		.map( pair => pair[1] )
+		.map( pair => pair[0][1] )
 		.map( addr => String(new HoloHash(addr)) )
 	);
 	log.debug("Group content targets: %s", targets );
@@ -487,7 +487,7 @@ function phase3_tests () {
 	    clients.bobby.cellAgent(), clients.carol.cellAgent(), clients.david.cellAgent(),
 	];
 
-	const addr = g1b_addr		= await clients.alice.call( DNA_NAME, COOP_ZOME, "update_group", {
+	const addr = g1b_addr		= await clients.alice.call( DNA_NAME, GOOD_ZOME, "update_group", {
 	    "base": g1a_addr,
 	    "entry": group,
 	});
@@ -496,7 +496,7 @@ function phase3_tests () {
 	expect( addr			).to.be.a("Uint8Array");
 	expect( addr			).to.have.length( 39 );
 
-	group				= intoStruct( await clients.alice.call( DNA_NAME, COOP_ZOME, "get_group", g1_addr ), GroupStruct );
+	group				= intoStruct( await clients.alice.call( DNA_NAME, GOOD_ZOME, "get_group", g1_addr ), GroupStruct );
 	log.debug( json.debug( group ) );
     });
 
@@ -537,11 +537,11 @@ function phase3_tests () {
     it("should get group content and find: C1a, C2b, C3a, C4a, C5", async function () {
 	const contents			= (await clients.david.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
 	    "group_id": g1_addr,
-	})).map( ([addr, content]) => [
-	    new HoloHash(addr),
+	})).map( ([[origin,latest], content]) => [
+	    [ new HoloHash(origin), new HoloHash(latest) ],
 	    intoStruct( content, ContentStruct ),
 	]);
-	const targets			= new Set( contents.map( pair => String(pair[0]) ) );
+	const targets			= new Set( contents.map( pair => String(pair[0][1]) ) );
 	log.debug("Group content targets: %s", targets );
 
 	const expected_targets	= [
@@ -557,11 +557,11 @@ function phase3_tests () {
 
     it("should get group content using full trace and find: C1a, C2b, C3a, C4a, C5", async function () {
 	const targets			= new Set(
-	    (await clients.david.call( DNA_NAME, COOP_ZOME, "get_all_group_content_targets", {
+	    (await clients.david.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
 		"group_id": g1_addr,
 		"full_trace": true,
 	    }))
-		.map( pair => pair[1] )
+		.map( pair => pair[0][1] )
 		.map( addr => String(new HoloHash(addr)) )
 	);
 	log.debug("Group content targets: %s", targets );
@@ -615,40 +615,35 @@ function phase3_checks_tests () {
     });
 
     it("should reject content link delete because author did not create the link", async function () {
-	let anchor_hash			= await clients.carol.call( DNA_NAME, COOP_ZOME, "group_auth_anchor_hash", {
-	    "group_id": g1_addr,
-	    "author": clients.carol.cellAgent(),
-	});
-
 	await expect_reject( async () => {
-	    await clients.alice.call( DNA_NAME, COOP_ZOME, "delete_content_link", {
-		"base": anchor_hash,
-		"target": c3_addr,
-		"link_type": "..",
-	    });
+	    await clients.alice.call( DNA_NAME, COOP_ZOME, "delete_group_auth_anchor_content_links", [
+		{
+		    "group_id": g1_addr,
+		    "author": clients.carol.cellAgent(),
+		},
+		c3_addr,
+	    ]);
 	}, "group auth anchor can only be deleted" );
     });
 
     it("should reject content link delete because author is not an admin", async function () {
-	let anchor_hash			= await clients.carol.call( DNA_NAME, COOP_ZOME, "group_auth_archive_anchor_hash", {
-	    "group_id": g1a_addr,
-	    "author": clients.carol.cellAgent(),
-	});
-
 	await expect_reject( async () => {
-	    await clients.carol.call( DNA_NAME, COOP_ZOME, "delete_content_link", {
-		"base": anchor_hash,
-		"target": c3_addr,
-		"link_type": "Content",
-	    });
-	}, "group auth archive anchor can only be deleted by an admin" );
+	    await clients.carol.call( DNA_NAME, COOP_ZOME, "delete_group_auth_anchor_content_links", [
+		{
+		    "group_id": g1a_addr,
+		    "author": clients.carol.cellAgent(),
+		    "anchor_type": "archive",
+		},
+		c3_addr,
+	    ]);
+	}, "can only be deleted by an admin" );
     });
 
 }
 
 
 function general_tests () {
-	// let evolutions			= await clients.carol.call( DNA_NAME, GEN_ZOME, "trace_evolutions", c3_addr );
+	// let evolutions			= await clients.carol.call( DNA_NAME, GEN_ZOME, "follow_evolutions", c3_addr );
 	// const history			= await Promise.all(
 	//     evolutions
 	// 	.map( addr => new ActionHash(addr) )
@@ -672,7 +667,7 @@ function general_tests () {
     });
 
     it("should trace evolutions using group authorities", async function () {
-	const result			= await clients.alice.call( DNA_NAME, DEBUG_ZOME, "trace_evolutions_using_authorities", {
+	const result			= await clients.alice.call( DNA_NAME, DEBUG_ZOME, "follow_evolutions_using_authorities", {
 	    "content_id": c2_addr,
 	    "authorities": [ ...group.admins, ...group.members ],
 	});
@@ -683,7 +678,7 @@ function general_tests () {
     });
 
     it("should trace evolutions using group authorities with exceptions", async function () {
-	const result			= await clients.alice.call( DNA_NAME, DEBUG_ZOME, "trace_evolutions_using_authorities_with_exceptions", {
+	const result			= await clients.alice.call( DNA_NAME, DEBUG_ZOME, "follow_evolutions_using_authorities_with_exceptions", {
 	    "content_id": c2_addr,
 	    "authorities": [ ...group.admins, ...group.members ],
 	    "exceptions": [ c2aa_addr, c3a_addr ],
@@ -699,7 +694,7 @@ function general_tests () {
     //
     it("should fail because record does not exist", async function () {
 	await expect_reject( async () => {
-	    await clients.alice.call( DNA_NAME, COOP_ZOME, "get_group", new ActionHash(crypto.randomBytes(32)) );
+	    await clients.alice.call( DNA_NAME, GOOD_ZOME, "get_group", new ActionHash(crypto.randomBytes(32)) );
 	}, "Record not found" );
     });
 

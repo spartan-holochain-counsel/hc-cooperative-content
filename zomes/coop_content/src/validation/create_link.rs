@@ -2,9 +2,9 @@ use hdi::prelude::*;
 use holo_hash::AnyLinkableHashPrimitive;
 use hdk::prelude::debug;
 use hdi_extensions::{
-    get_root_origin,
-    must_get_any_linkable_entry,
-    any_linkable_deserialize_check,
+    trace_origin_root,
+    summon_app_entry,
+    verify_app_entry_struct,
     AnyLinkableHashTransformer,
     // Macros
     valid, invalid, guest_error,
@@ -22,7 +22,7 @@ fn validate_content_link_base(
     base: &AnyLinkableHash,
     create: &CreateLink,
 ) -> ExternResult<()> {
-    let anchor : GroupAuthAnchor = must_get_any_linkable_entry( &base )?;
+    let anchor : GroupAuthAnchor = summon_app_entry( &base )?;
 
     if anchor.is_archive() {
         let group : GroupEntry = must_get_valid_record( anchor.group().to_owned() )?.try_into()?;
@@ -86,7 +86,7 @@ pub fn validation(
                 AnyLinkableHashPrimitive::Action(id_addr),
                 AnyLinkableHashPrimitive::Action(rev_addr)
             ) = (content_id.into_primitive(), content_rev.into_primitive()) {
-                if id_addr != get_root_origin( &rev_addr )?.0 {
+                if id_addr != trace_origin_root( &rev_addr )?.0 {
                     invalid!(format!("Tag parts do not match; Content update link tag ID is not the root of the tag revision: {}", tag_str ))
                 }
             }
@@ -106,19 +106,19 @@ pub fn validation(
             }
 
             // Group target should be a GroupEntry
-            any_linkable_deserialize_check::<GroupEntry>( &target_address )?;
+            verify_app_entry_struct::<GroupEntry>( &target_address )?;
 
             valid!()
         },
         LinkTypes::GroupAuth => {
             debug!("Checking LinkTypes::GroupAuth base address: {}", base_address );
-            let group : GroupEntry = must_get_any_linkable_entry( &base_address )?;
+            let group : GroupEntry = summon_app_entry( &base_address )?;
 
             if !group.admins.contains( &create.author ) {
                 invalid!("The author of a group auth link must be an admin of the base group".to_string())
             }
 
-            let anchor : GroupAuthAnchorEntry = must_get_any_linkable_entry( &target_address )?;
+            let anchor : GroupAuthAnchorEntry = summon_app_entry( &target_address )?;
 
             if !group.authorities().contains( &anchor.1 ) {
                 invalid!(format!("Links to group auth anchors must match an authority in the group revision they are based off of"))
@@ -129,7 +129,7 @@ pub fn validation(
         LinkTypes::GroupAuthArchive => {
             debug!("Checking LinkTypes::GroupAuthArchive");
 
-            any_linkable_deserialize_check::<GroupEntry>( &base_address )?;
+            verify_app_entry_struct::<GroupEntry>( &base_address )?;
 
             valid!()
         },

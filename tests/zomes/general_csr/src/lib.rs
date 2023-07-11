@@ -18,17 +18,17 @@ fn whoami(_: ()) -> ExternResult<AgentInfo> {
 
 
 #[hdk_extern]
-fn get_action(addr: ActionHash) -> ExternResult<Action> {
+fn fetch_action(addr: ActionHash) -> ExternResult<Action> {
     Ok( must_get_action(addr)?.hashed.content )
 }
 
 
 #[hdk_extern]
-fn get_entry(addr: AnyDhtHash) -> ExternResult<Entry> {
+fn fetch_entry(addr: AnyDhtHash) -> ExternResult<Entry> {
     let entry_hash = match addr.into_primitive() {
         AnyDhtHashPrimitive::Entry(addr) => addr,
         AnyDhtHashPrimitive::Action(addr) => {
-            get_action( addr.clone() )?.entry_hash()
+            fetch_action( addr.clone() )?.entry_hash()
                 .ok_or(guest_error!(format!("Action ({}) does not have an entry", addr )))?
                 .to_owned()
         },
@@ -45,6 +45,6 @@ pub fn trace_origin(action_address: ActionHash) -> ExternResult<Vec<(ActionHash,
 
 
 #[hdk_extern]
-pub fn trace_evolutions(action_address: ActionHash) -> ExternResult<Vec<ActionHash>> {
-    Ok( hdk_extensions::trace_evolutions( &action_address )? )
+pub fn follow_evolutions(action_address: ActionHash) -> ExternResult<Vec<ActionHash>> {
+    Ok( hdk_extensions::follow_evolutions( &action_address )? )
 }

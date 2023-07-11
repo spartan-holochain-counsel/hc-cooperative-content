@@ -1,8 +1,8 @@
 use hdi::prelude::*;
 use hdk::prelude::debug;
 use hdi_extensions::{
-    get_create_action,
-    derive_app_entry_unit,
+    summon_create_action,
+    detect_app_entry_unit,
     // Macros
     invalid,
 };
@@ -16,9 +16,9 @@ pub fn validation(
     _original_entry_hash: EntryHash,
     _delete: Delete
 ) -> ExternResult<ValidateCallbackResult> {
-    let (_create_record, create) = get_create_action( &original_action_hash )?;
+    let create = summon_create_action( &original_action_hash )?;
 
-    match derive_app_entry_unit( &create )? {
+    match detect_app_entry_unit( &create )? {
         EntryTypesUnit::Group => {
             debug!("Checking delete EntryTypesUnit::Group");
             invalid!("Groups cannot be deleted; they can be marked as 'dead' using counter-signing".to_string())

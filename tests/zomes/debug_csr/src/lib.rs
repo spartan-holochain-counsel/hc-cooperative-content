@@ -25,8 +25,8 @@ pub fn trace_origin(action_address: ActionHash) -> ExternResult<Vec<(ActionHash,
 
 
 #[hdk_extern]
-pub fn trace_evolutions(action_address: ActionHash) -> ExternResult<Vec<ActionHash>> {
-    Ok( hdk_extensions::trace_evolutions(&action_address)? )
+pub fn follow_evolutions(action_address: ActionHash) -> ExternResult<Vec<ActionHash>> {
+    Ok( hdk_extensions::follow_evolutions(&action_address)? )
 }
 
 
@@ -45,10 +45,10 @@ impl fmt::Display for TraceAuthoritiesInput {
 }
 
 #[hdk_extern]
-pub fn trace_evolutions_using_authorities(input: TraceAuthoritiesInput) -> ExternResult<Vec<ActionHash>> {
+pub fn follow_evolutions_using_authorities(input: TraceAuthoritiesInput) -> ExternResult<Vec<ActionHash>> {
     debug!("Get latest entry: {}", input );
     Ok(
-        hdk_extensions::trace_evolutions_using_authorities(
+        hdk_extensions::follow_evolutions_using_authorities(
             &input.content_id,
             &input.authorities,
         )?
@@ -73,10 +73,10 @@ impl fmt::Display for TraceAuthoritiesExceptionsInput {
 }
 
 #[hdk_extern]
-pub fn trace_evolutions_using_authorities_with_exceptions(input: TraceAuthoritiesExceptionsInput) -> ExternResult<Vec<ActionHash>> {
+pub fn follow_evolutions_using_authorities_with_exceptions(input: TraceAuthoritiesExceptionsInput) -> ExternResult<Vec<ActionHash>> {
     debug!("Get latest entry: {}", input );
     Ok(
-        hdk_extensions::trace_evolutions_using_authorities_with_exceptions(
+        hdk_extensions::follow_evolutions_using_authorities_with_exceptions(
             &input.content_id,
             &input.authorities,
             &input.exceptions,
@@ -86,6 +86,6 @@ pub fn trace_evolutions_using_authorities_with_exceptions(input: TraceAuthoritie
 
 
 #[hdk_extern]
-pub fn get_all_links_on_base(base: AnyLinkableHash) -> ExternResult<Vec<Link>> {
+pub fn list_all_links_on_base(base: AnyLinkableHash) -> ExternResult<Vec<Link>> {
     Ok( get_links( base, .., None )? )
 }

@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 coop_content = { path = "../../../zomes/coop_content" }
-hc_hdk_extensions = { path = "../../../hdk_extensions" }
 hdk = "0.3.0-beta-dev.2"
 serde = "1"
+whi_hdk_extensions = "0.1"
+# whi_hdk_extensions = { path = "../../../../hdk_extensions" }

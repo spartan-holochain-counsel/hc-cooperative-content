@@ -29,6 +29,8 @@
             devShells.default = pkgs.mkShell {
               inputsFrom = [ inputs.holochain-flake.devShells.${system}.holonix ];
               packages = with pkgs; [
+                nodejs-18_x
+                inotify-tools
               ];
             };
           };

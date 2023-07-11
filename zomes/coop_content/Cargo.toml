@@ -10,7 +10,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 coop_content_types = {path = "../../coop_content_types"}
-hc_hdi_extensions = { path = "../../hdi_extensions" }
 hdi = "0.4.0-beta-dev.1"
 hdk = "0.3.0-beta-dev.2"
 serde = "1"
+whi_hdi_extensions = "0.1"
+# whi_hdi_extensions = { path = "../../../whi_hdi_extensions" }

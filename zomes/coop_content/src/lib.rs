@@ -13,6 +13,7 @@ pub use coop_content_types::*;
 
 
 
+/// The entry types defined for this `coop_content` integrity zome
 #[hdk_entry_defs]
 #[unit_enum(EntryTypesUnit)]
 pub enum EntryTypes {
@@ -42,6 +43,7 @@ scoped_type_connector!(
 
 
 
+/// The link types defined for this `coop_content` integrity zome
 #[hdk_link_types]
 pub enum LinkTypes {
     Group,

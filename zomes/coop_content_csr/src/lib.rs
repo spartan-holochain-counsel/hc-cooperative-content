@@ -8,12 +8,11 @@ use hdk_extensions::{
     must_get,
     exists,
     resolve_action_addr,
-    // trace_evolutions,
-    latest_evolution,
-    trace_evolutions_using_authorities_with_exceptions,
+    follow_evolutions,
+    follow_evolutions_using_authorities_with_exceptions,
 
     // HDI Extensions
-    get_root_origin,
+    trace_origin_root,
     ScopedTypeConnector,
     UpdateEntryInput,
     GetLinksInput,
@@ -32,6 +31,7 @@ use coop_content::{
     GroupAuthArchiveAnchorEntry,
 
     // Input Structs
+    GroupAuthAnchorType,
     GroupAuthInput,
     GetAllGroupContentInput,
     GetGroupContentInput,
@@ -103,7 +103,7 @@ pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
 #[hdk_extern]
 pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionHash> {
     debug!("Update group action: {}", input.base );
-    let group_id = get_root_origin( &input.base )?.0;
+    let group_id = trace_origin_root( &input.base )?.0;
     let prev_group : GroupEntry = must_get( &input.base )?.try_into()?;
     let authorities_diff = prev_group.authorities_diff( &input.entry );
 
@@ -160,7 +160,7 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionH
 #[hdk_extern]
 pub fn get_group(group_id: ActionHash) -> ExternResult<GroupEntry> {
     debug!("Get latest group entry: {}", group_id );
-    let latest_addr = latest_evolution( &group_id )?;
+    let latest_addr = follow_evolutions( &group_id )?.last().unwrap();
     let record = must_get( &latest_addr )?;
 
     Ok( GroupEntry::try_from_record( &record )? )
@@ -179,7 +179,7 @@ pub fn get_all_group_content_targets(input: GetAllGroupContentInput) -> ExternRe
 #[hdk_extern]
 pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
     debug!("Get latest group content: {}", group_id );
-    let latest_addr = latest_evolution( &group_id )?;
+    let latest_addr = follow_evolutions( &group_id )?.last().unwrap();
     let record = must_get( &latest_addr )?;
     let group_rev = record.action_address().to_owned();
     let group : GroupEntry = record.try_into()?;
@@ -187,7 +187,7 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
     let mut content_creates = vec![];
     let mut archived_updates : Vec<ActionHash> = vec![];
 
-    let auth_archive_anchors = GroupEntry::group_auth_archive_addrs( &group_rev )?;
+    let auth_archive_anchors = GroupEntry::group_auth_archive_anchor_hashes( &group_rev )?;
 
     debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
     for auth_archive_addr in auth_archive_anchors.iter() {
@@ -203,7 +203,7 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
         archived_updates.extend( update_actions );
     }
 
-    let group_auth_anchors = GroupEntry::group_auth_addrs( &group_rev )?;
+    let group_auth_anchors = GroupEntry::group_auth_anchor_hashes( &group_rev )?;
 
     debug!("Found {} current authorities for group rev '{}'", group_auth_anchors.len(), group_rev );
     for auth_anchor_addr in group_auth_anchors.iter() {
@@ -218,7 +218,7 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
     for content_addr in content_creates {
         match content_addr.clone().into_action_hash() {
             Some(addr) => {
-                let evolutions = trace_evolutions_using_authorities_with_exceptions( &addr, &group.authorities(), &archived_updates )?;
+                let evolutions = follow_evolutions_using_authorities_with_exceptions( &addr, &group.authorities(), &archived_updates )?;
                 targets.push((
                     content_addr,
                     evolutions.last().unwrap().to_owned().into()
@@ -232,7 +232,7 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
 }
 
 
-fn trace_update_map(
+fn follow_update_map(
     start: &AnyLinkableHash,
     updates: &LinkPointerMap
 ) -> Vec<AnyLinkableHash> {
@@ -249,16 +249,16 @@ fn trace_update_map(
 }
 
 #[hdk_extern]
-pub fn trace_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, Vec<AnyLinkableHash>)>> {
+pub fn follow_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, Vec<AnyLinkableHash>)>> {
     debug!("Get latest group content: {}", group_id );
-    let latest_addr = latest_evolution( &group_id )?;
+    let latest_addr = follow_evolutions( &group_id )?.last().unwrap();
     let record = must_get( &latest_addr )?;
     let group_rev = record.action_address().to_owned();
 
     let mut targets = vec![];
     let mut updates = HashMap::new();
 
-    let auth_archive_anchors = GroupEntry::group_auth_archive_addrs( &group_rev )?;
+    let auth_archive_anchors = GroupEntry::group_auth_archive_anchor_hashes( &group_rev )?;
 
     debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
     for auth_archive_addr in auth_archive_anchors.iter() {
@@ -276,7 +276,7 @@ pub fn trace_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ext
         }
     }
 
-    let group_auth_anchors = GroupEntry::group_auth_addrs( &group_rev )?;
+    let group_auth_anchors = GroupEntry::group_auth_anchor_hashes( &group_rev )?;
 
     debug!("Found {} current authorities for group rev '{}'", group_auth_anchors.len(), group_rev );
     for auth_anchor_addr in group_auth_anchors.iter() {
@@ -299,7 +299,7 @@ pub fn trace_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ext
     for addr in targets {
         content_evolutions.push((
             addr.clone(),
-            trace_update_map( &addr, &updates )
+            follow_update_map( &addr, &updates )
         ));
     }
 
@@ -309,7 +309,7 @@ pub fn trace_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ext
 #[hdk_extern]
 pub fn get_all_group_content_targets_shortcuts(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
     Ok(
-        trace_all_group_content_evolutions_shortcuts( group_id )?.into_iter()
+        follow_all_group_content_evolutions_shortcuts( group_id )?.into_iter()
             .filter_map( |(key, evolutions)| {
                 let latest_addr = evolutions.last()?.to_owned();
                 Some( (key, latest_addr) )
@@ -359,13 +359,30 @@ pub fn create_content_update_link(input: CreateContentUpdateLinkInput) -> Extern
 
 
 #[hdk_extern]
-pub fn delete_content_link(input: GetLinksInput<LinkTypes>) -> ExternResult<Vec<ActionHash>> {
-    debug!("GetLinksInput: {:#?}", input );
-    let links = get_links( input.base, input.link_type_filter, input.tag )?;
+pub fn delete_group_auth_anchor_content_links(input: (GroupAuthInput, AnyLinkableHash)) -> ExternResult<Vec<ActionHash>> {
+    debug!("Input: {:#?}", input );
+    let base = match input.0.anchor_type {
+        GroupAuthAnchorType::Active => {
+            let anchor = GroupAuthAnchorEntry( input.0.group_id, input.0.author );
+            debug!("Delete input anchor: {:#?}", anchor );
+            hash_entry( anchor )?
+        },
+        GroupAuthAnchorType::Archive => {
+            let anchor = GroupAuthArchiveAnchorEntry::new( input.0.group_id, input.0.author );
+            debug!("Delete input anchor: {:#?}", anchor );
+            hash_entry( anchor )?
+        },
+    };
+
+    let link_types = vec![
+        LinkTypes::Content,
+        LinkTypes::ContentUpdate,
+    ];
+    let links = get_links( base, link_types, None )?;
     let mut deleted = vec![];
 
     for link in links {
-        if link.target == input.target {
+        if link.target == input.1 {
             delete_link( link.create_link_hash.clone() )?;
             deleted.push( link.create_link_hash );
         }
@@ -387,13 +404,13 @@ pub fn get_group_content_latest(input: GetGroupContentInput) -> ExternResult<Any
 pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
     debug!("Get latest group content: {}", input.group_id );
     let base_addr = resolve_action_addr( &input.content_id )?;
-    let latest_addr = latest_evolution( &input.group_id )?;
+    let latest_addr = follow_evolutions( &input.group_id )?.last().unwrap();
     let record = must_get( &latest_addr )?;
     let group_rev = record.action_address().to_owned();
     let group : GroupEntry = record.try_into()?;
 
     let mut archived_updates : Vec<ActionHash> = vec![];
-    let auth_archive_anchors = GroupEntry::group_auth_archive_addrs( &group_rev )?;
+    let auth_archive_anchors = GroupEntry::group_auth_archive_anchor_hashes( &group_rev )?;
 
     debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
     for auth_archive_addr in auth_archive_anchors.iter() {
@@ -409,7 +426,7 @@ pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> Exter
     }
 
     Ok(
-        trace_evolutions_using_authorities_with_exceptions(
+        follow_evolutions_using_authorities_with_exceptions(
             &base_addr,
             &group.authorities(),
             &archived_updates
@@ -420,7 +437,7 @@ pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> Exter
 
 #[hdk_extern]
 pub fn get_group_content_latest_shortcuts(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
-    let content_evolutions : EvolutionMap = trace_all_group_content_evolutions_shortcuts( input.group_id )?
+    let content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( input.group_id )?
         .into_iter().collect();
 
     debug!("Looking for {} in: {:#?}", input.content_id, content_evolutions );
@@ -429,4 +446,25 @@ pub fn get_group_content_latest_shortcuts(input: GetGroupContentInput) -> Extern
             .ok_or(guest_error!(format!("Content ID ({}) is not in group content: {:?}", input.content_id, content_evolutions.keys() )))?
             .last().unwrap().to_owned()
     )
+}
+
+
+
+//
+// Generic
+//
+#[hdk_extern]
+pub fn delete_matching_links(input: GetLinksInput<LinkTypes>) -> ExternResult<Vec<ActionHash>> {
+    debug!("GetLinksInput: {:#?}", input );
+    let links = get_links( input.base, input.link_type_filter, input.tag )?;
+    let mut deleted = vec![];
+
+    for link in links {
+        if link.target == input.target {
+            delete_link( link.create_link_hash.clone() )?;
+            deleted.push( link.create_link_hash );
+        }
+    }
+
+    Ok( deleted )
 }
