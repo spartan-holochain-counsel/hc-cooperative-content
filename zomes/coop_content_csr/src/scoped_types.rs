@@ -1,16 +1,17 @@
 pub mod entry_traits;
 
-use hdk::prelude::*;
-use hdk_extensions::{
+use crate::hdk::prelude::*;
+use crate::hdi_extensions::{
     AnyLinkableHashTransformer,
 };
 use coop_content::{
     LinkTypes,
-
-    // Entry Structs
-    GroupEntry,
-    GroupAuthAnchorEntry,
-    GroupAuthArchiveAnchorEntry,
+    coop_content_types::{
+        // Entry Structs
+        GroupEntry,
+        GroupAuthAnchorEntry,
+        GroupAuthArchiveAnchorEntry,
+    },
 };
 pub use entry_traits::{
     GroupLinks,

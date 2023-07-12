@@ -1,7 +1,10 @@
-use hdi::prelude::*;
+use crate::hdk::prelude::{
+    hdi, holo_hash,
+    debug,
+};
+use crate::hdi::prelude::*;
 use holo_hash::AnyLinkableHashPrimitive;
-use hdk::prelude::debug;
-use hdi_extensions::{
+use crate::hdi_extensions::{
     trace_origin_root,
     summon_app_entry,
     verify_app_entry_struct,

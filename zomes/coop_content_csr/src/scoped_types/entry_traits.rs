@@ -1,4 +1,4 @@
-use hdk::prelude::*;
+use crate::hdk::prelude::*;
 
 pub trait GroupLinks {
     fn group_auth_anchor_hashes(base: &ActionHash) -> ExternResult<Vec<EntryHash>>;

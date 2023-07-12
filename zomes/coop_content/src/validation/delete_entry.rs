@@ -1,6 +1,9 @@
-use hdi::prelude::*;
-use hdk::prelude::debug;
-use hdi_extensions::{
+use crate::hdk::prelude::{
+    hdi,
+    debug,
+};
+use crate::hdi::prelude::*;
+use crate::hdi_extensions::{
     summon_create_action,
     detect_app_entry_unit,
     // Macros

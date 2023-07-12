@@ -8,7 +8,5 @@ name = "general_csr"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-hdk = "0.3.0-beta-dev.2"
 serde = "1"
-whi_hdk_extensions = "0.1"
-# whi_hdk_extensions = { path = "../../../../hdk_extensions" }
+whi_hdk_extensions = { path = "../../../../whi_hdk_extensions" }

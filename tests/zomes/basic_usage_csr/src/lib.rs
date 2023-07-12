@@ -1,10 +1,14 @@
+pub use coop_content_types::hdk;
+pub use coop_content_types::hdi_extensions;
+pub use coop_content_types::hdk_extensions;
+
 use hdk::prelude::*;
+use hdi_extensions::{
+    ScopedTypeConnector,
+};
 use hdk_extensions::{
     must_get,
     Entity, MorphAddr,
-
-    // HDI Extensions
-    ScopedTypeConnector,
     // Inputs
     UpdateEntryInput,
 };

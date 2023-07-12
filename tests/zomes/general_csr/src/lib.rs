@@ -1,6 +1,10 @@
+pub use hdk_extensions::hdk;
+pub use hdk_extensions::holo_hash;
+pub use hdk_extensions::hdi_extensions;
+
 use hdk::prelude::*;
 use holo_hash::AnyDhtHashPrimitive;
-use hdk_extensions::{
+use hdi_extensions::{
     guest_error,
 };
 
@@ -40,7 +44,7 @@ fn fetch_entry(addr: AnyDhtHash) -> ExternResult<Entry> {
 
 #[hdk_extern]
 pub fn trace_origin(action_address: ActionHash) -> ExternResult<Vec<(ActionHash, Action)>> {
-    Ok( hdk_extensions::trace_origin( &action_address )? )
+    Ok( hdi_extensions::trace_origin( &action_address )? )
 }
 
 

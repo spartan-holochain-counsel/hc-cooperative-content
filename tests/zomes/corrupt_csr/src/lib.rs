@@ -1,10 +1,15 @@
+pub use coop_content::hdk;
+pub use coop_content::hdi_extensions;
+pub use coop_content::coop_content_types;
+
 use hdk::prelude::*;
-use hdk_extensions::{
-    // HDI Extensions
+use hdi_extensions::{
     ScopedTypeConnector,
 };
 use coop_content::{
     LinkTypes,
+};
+use coop_content_types::{
     GroupAuthAnchorEntry,
     GroupAuthArchiveAnchorEntry,
 };

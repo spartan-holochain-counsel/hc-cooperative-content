@@ -1,5 +1,11 @@
 mod scoped_types;
 
+pub use coop_content::hdi;
+pub use coop_content::hdk;
+pub use coop_content::hdi_extensions;
+pub use coop_content::hdk_extensions;
+pub use coop_content::holo_hash;
+
 use std::collections::HashMap;
 use lazy_static::lazy_static;
 use hdk::prelude::*;
@@ -10,13 +16,13 @@ use hdk_extensions::{
     resolve_action_addr,
     follow_evolutions,
     follow_evolutions_using_authorities_with_exceptions,
-
-    // HDI Extensions
-    trace_origin_root,
-    ScopedTypeConnector,
+    // Input Structs
     UpdateEntryInput,
     GetLinksInput,
-
+};
+use hdi_extensions::{
+    trace_origin_root,
+    ScopedTypeConnector,
     // Macros
     guest_error,
 };
@@ -24,19 +30,20 @@ use coop_content::{
     EntryTypes,
     EntryTypesUnit,
     LinkTypes,
+    coop_content_types::{
+        // Entry Structs
+        GroupEntry,
+        GroupAuthAnchorEntry,
+        GroupAuthArchiveAnchorEntry,
+        // Input Structs
+        GroupAuthAnchorType,
+        GroupAuthInput,
+        GetAllGroupContentInput,
+        GetGroupContentInput,
+        CreateContentLinkInput,
+        CreateContentUpdateLinkInput,
+    },
 
-    // Entry Structs
-    GroupEntry,
-    GroupAuthAnchorEntry,
-    GroupAuthArchiveAnchorEntry,
-
-    // Input Structs
-    GroupAuthAnchorType,
-    GroupAuthInput,
-    GetAllGroupContentInput,
-    GetGroupContentInput,
-    CreateContentLinkInput,
-    CreateContentUpdateLinkInput,
 };
 use scoped_types::entry_traits::*;
 
@@ -160,7 +167,7 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionH
 #[hdk_extern]
 pub fn get_group(group_id: ActionHash) -> ExternResult<GroupEntry> {
     debug!("Get latest group entry: {}", group_id );
-    let latest_addr = follow_evolutions( &group_id )?.last().unwrap();
+    let latest_addr = follow_evolutions( &group_id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
 
     Ok( GroupEntry::try_from_record( &record )? )
@@ -179,7 +186,7 @@ pub fn get_all_group_content_targets(input: GetAllGroupContentInput) -> ExternRe
 #[hdk_extern]
 pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
     debug!("Get latest group content: {}", group_id );
-    let latest_addr = follow_evolutions( &group_id )?.last().unwrap();
+    let latest_addr = follow_evolutions( &group_id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
     let group_rev = record.action_address().to_owned();
     let group : GroupEntry = record.try_into()?;
@@ -251,7 +258,7 @@ fn follow_update_map(
 #[hdk_extern]
 pub fn follow_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, Vec<AnyLinkableHash>)>> {
     debug!("Get latest group content: {}", group_id );
-    let latest_addr = follow_evolutions( &group_id )?.last().unwrap();
+    let latest_addr = follow_evolutions( &group_id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
     let group_rev = record.action_address().to_owned();
 
@@ -404,7 +411,7 @@ pub fn get_group_content_latest(input: GetGroupContentInput) -> ExternResult<Any
 pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
     debug!("Get latest group content: {}", input.group_id );
     let base_addr = resolve_action_addr( &input.content_id )?;
-    let latest_addr = follow_evolutions( &input.group_id )?.last().unwrap();
+    let latest_addr = follow_evolutions( &input.group_id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
     let group_rev = record.action_address().to_owned();
     let group : GroupEntry = record.try_into()?;

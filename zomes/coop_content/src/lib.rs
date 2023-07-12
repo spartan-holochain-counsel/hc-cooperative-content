@@ -1,15 +1,22 @@
 mod validation;
 
+pub use coop_content_types;
+pub use coop_content_types::hdi;
+pub use coop_content_types::hdk;
+pub use coop_content_types::hdi_extensions;
+pub use coop_content_types::hdk_extensions;
+pub use coop_content_types::holo_hash;
+
 use serde::{
     Deserialize, Deserializer,
 };
+use coop_content_types::*;
 use hdi::prelude::*;
 use hdi_extensions::{
     guest_error,
     ScopedTypeConnector, scoped_type_connector,
 };
 
-pub use coop_content_types::*;
 
 
 

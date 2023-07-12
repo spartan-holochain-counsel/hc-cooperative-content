@@ -1,9 +1,16 @@
-use std::collections::BTreeMap;
-use hdi::prelude::*;
-use hdk::prelude::AnyLinkableHash;
-use thiserror::Error;
-pub use hdk_extensions::*;
+pub use hdk_extensions::hdi;
+pub use hdk_extensions::holo_hash;
+pub use hdk_extensions::hdk;
+pub use hdk_extensions::hdi_extensions;
+pub use hdk_extensions;
 
+use std::collections::BTreeMap;
+use holo_hash::{
+    AgentPubKey, ActionHash, AnyLinkableHash,
+};
+use hdi::prelude::*;
+use thiserror::Error;
+use hdi_extensions::trace_origin_root;
 
 
 //
@@ -457,17 +464,22 @@ where
 #[macro_export]
 macro_rules! call_local_zome {
     ( $zome:literal, $fn:literal, $($input:tt)+ ) => {
-        match hdk::prelude::call(
-            hdk::prelude::CallTargetCell::Local,
-            $zome,
-            $fn.into(),
-            None,
-            $($input)+,
-        )? {
-            ZomeCallResponse::Ok(extern_io) => Ok(extern_io),
-            ZomeCallResponse::NetworkError(msg) => Err(hdk_extensions::guest_error!(format!("{}", msg))),
-            ZomeCallResponse::CountersigningSession(msg) => Err(hdk_extensions::guest_error!(format!("{}", msg))),
-            _ => Err(hdk_extensions::guest_error!(format!("Zome call response: Unauthorized"))),
+        {
+            use coop_content_types::hdk;
+            use coop_content_types::hdi_extensions::guest_error;
+
+            match hdk::prelude::call(
+                hdk::prelude::CallTargetCell::Local,
+                $zome,
+                $fn.into(),
+                None,
+                $($input)+,
+            )? {
+                ZomeCallResponse::Ok(extern_io) => Ok(extern_io),
+                ZomeCallResponse::NetworkError(msg) => Err(guest_error!(format!("{}", msg))),
+                ZomeCallResponse::CountersigningSession(msg) => Err(guest_error!(format!("{}", msg))),
+                _ => Err(guest_error!(format!("Zome call response: Unauthorized"))),
+            }
         }
     };
 }
@@ -685,12 +697,16 @@ macro_rules! register_content_to_group {
 macro_rules! register_content_update_to_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
+            use coop_content_types::hdi_extensions::{
+                trace_origin, guest_error,
+            };
             use coop_content_types::GroupRef;
+
             let input = coop_content_types::RegisterContentMacroInput $($def)*;
-            let history = hdk_extensions::trace_origin( &input.target )?;
+            let history = trace_origin( &input.target )?;
 
             if history.len() < 2 {
-                Err(hdk_extensions::guest_error!(format!("History of target {} is empty", input.target )))?
+                Err(guest_error!(format!("History of target {} is empty", input.target )))?
             }
 
             let content_id = &history[ history.len() - 1 ].0;
@@ -782,16 +798,22 @@ pub struct GetGroupContentMacroInput {
 macro_rules! get_group_content_latest {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
+            use coop_content_types::hdk_extensions;
+            use coop_content_types::hdk_extensions::resolve_action_addr;
+            use coop_content_types::hdi_extensions::{
+                trace_origin, guest_error,
+            };
+
             let input = coop_content_types::GetGroupContentMacroInput $($def)*;
-            let action_addr = hdk_extensions::resolve_action_addr( &input.content_id )?;
-            let history = hdk_extensions::trace_origin( &action_addr )?;
+            let action_addr = resolve_action_addr( &input.content_id )?;
+            let history = trace_origin( &action_addr )?;
 
             if history.len() < 1 {
-                Err(hdk_extensions::guest_error!(format!("Unexpected state")))?
+                Err(guest_error!(format!("Unexpected state")))?
             }
 
             if input.content_id != history[ history.len() - 1 ].0.clone().into() {
-                Err(hdk_extensions::guest_error!(format!("Given 'content_id' must be an ID (create action); not an update action")))?
+                Err(guest_error!(format!("Given 'content_id' must be an ID (create action); not an update action")))?
             }
 
             coop_content_types::call_local_zome_decode!(
@@ -873,6 +895,8 @@ pub struct GetAllGroupContentMacroInput {
 macro_rules! get_all_group_content_latest {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
+            use coop_content_types::hdk;
+
             type Response = hdk::prelude::ExternResult<coop_content_types::LinkPointerMap>;
             let input = coop_content_types::GetAllGroupContentMacroInput $($def)*;
             let result : Response = coop_content_types::call_local_zome_decode!(
@@ -1090,7 +1114,9 @@ macro_rules! get_group {
 macro_rules! update_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            let input = coop_content_types::UpdateEntryInput::<GroupEntry> $($def)*;
+            use coop_content_types::hdk_extensions;
+
+            let input = hdk_extensions::UpdateEntryInput::<GroupEntry> $($def)*;
             coop_content_types::call_local_zome_decode!(
                 ActionHash,
                 $zome,

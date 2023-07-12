@@ -4,9 +4,7 @@ SHELL			= bash
 TARGET			= release
 TARGET_DIR		= target/wasm32-unknown-unknown/release
 SOURCE_FILES		= Makefile zomes/Cargo.* zomes/*/Cargo.toml zomes/*/src/*.rs zomes/*/src/*/* \
-				coop_content_types/Cargo.toml coop_content_types/src/*.rs \
-				hdi_extensions/Cargo.toml hdi_extensions/src/*.rs \
-				hdk_extensions/Cargo.toml hdk_extensions/src/*.rs
+				coop_content_types/Cargo.toml coop_content_types/src/*.rs
 
 # Zomes (WASM)
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
@@ -55,6 +53,10 @@ use-npm-backdrop:
 #
 # Testing
 #
+reset:
+	rm -f zomes/*.wasm
+	rm -f tests/*.dna
+	rm -f tests/zomes/*.wasm
 tests/%.dna:			build FORCE
 	cd tests; make $*.dna
 test-setup:			tests/node_modules
@@ -130,6 +132,35 @@ update-hdk-version:
 	git grep -l $(PRE_HDK_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDK_VERSION)/$(NEW_HDK_VERSION)/g'
 update-hdi-version:
 	git grep -l $(PRE_HDI_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDI_VERSION)/$(NEW_HDI_VERSION)/g'
+
+HDIEV	= "0.1"
+HDKEV	= "0.1"
+
+use-local-whi_hdi:
+	git grep -l 'whi_hdi_extensions = $(HDIEV)' -- zomes/*/Cargo.toml \
+		| xargs sed -i 's/whi_hdi_extensions = $(HDIEV)/whi_hdi_extensions = { path = "..\/..\/..\/whi_hdi_extensions" }/g'
+	git grep -l 'whi_hdi_extensions = $(HDIEV)' -- tests/zomes/*/Cargo.toml \
+		| xargs sed -i 's/whi_hdi_extensions = $(HDIEV)/whi_hdi_extensions = { path = "..\/..\/..\/..\/whi_hdi_extensions" }/g'
+use-rust-whi_hdi:
+	git grep -l 'whi_hdi_extensions = {' -- zomes/*/Cargo.toml \
+		| xargs sed -i 's/whi_hdi_extensions = { path = "..\/..\/..\/whi_hdi_extensions" }/whi_hdi_extensions = $(HDIEV)/g'
+	git grep -l 'whi_hdi_extensions = {' -- tests/zomes/*/Cargo.toml \
+		| xargs sed -i 's/whi_hdi_extensions = { path = "..\/..\/..\/..\/whi_hdi_extensions" }/whi_hdi_extensions = $(HDIEV)/g'
+
+use-local-whi_hdk:
+	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- zomes/*/Cargo.toml \
+		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/..\/whi_hdk_extensions" }/g'
+	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- tests/zomes/*/Cargo.toml \
+		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/..\/..\/whi_hdk_extensions" }/g'
+	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- coop_content_types/Cargo.toml \
+		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/whi_hdk_extensions" }/g'
+use-rust-whi_hdk:
+	git grep -l 'whi_hdk_extensions = {' -- zomes/*/Cargo.toml \
+		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
+	git grep -l 'whi_hdk_extensions = {' -- tests/zomes/*/Cargo.toml \
+		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
+	git grep -l 'whi_hdk_extensions = {' -- coop_content_types/Cargo.toml \
+		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
 
 
 #

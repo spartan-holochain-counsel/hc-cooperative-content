@@ -1,3 +1,8 @@
+pub use coop_content_types;
+pub use coop_content_types::hdi;
+pub use coop_content_types::hdk;
+pub use coop_content_types::hdi_extensions;
+
 use hdi::prelude::*;
 use hdk::prelude::debug;
 use hdi_extensions::{

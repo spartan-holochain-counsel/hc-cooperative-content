@@ -1,3 +1,6 @@
+pub use hdk_extensions::hdk;
+pub use hdk_extensions::hdi_extensions;
+
 use std::fmt;
 use hdk::prelude::*;
 
@@ -20,7 +23,7 @@ fn whoami(_: ()) -> ExternResult<AgentInfo> {
 
 #[hdk_extern]
 pub fn trace_origin(action_address: ActionHash) -> ExternResult<Vec<(ActionHash, Action)>> {
-    Ok( hdk_extensions::trace_origin(&action_address)? )
+    Ok( hdi_extensions::trace_origin(&action_address)? )
 }
 
 
