@@ -1,11 +1,11 @@
 [package]
-name = "coop_content_types"
+name = "hc_coop_content_sdk"
 version = "0.1.0"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
 edition = "2018"
 
 [lib]
-name = "coop_content_types"
+name = "coop_content_sdk"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

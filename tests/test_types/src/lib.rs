@@ -1,5 +1,5 @@
 use hdi::prelude::*;
-use coop_content_types::group_ref;
+use coop_content_sdk::group_ref;
 
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

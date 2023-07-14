@@ -26,12 +26,12 @@ pub fn validation(
             debug!("Checking delete EntryTypesUnit::Group");
             invalid!("Groups cannot be deleted; they can be marked as 'dead' using counter-signing".to_string())
         },
-        EntryTypesUnit::GroupAuthAnchor => {
-            debug!("Checking delete of EntryTypesUnit::GroupAuthAnchor");
+        EntryTypesUnit::ContributionsAnchor => {
+            debug!("Checking delete of EntryTypesUnit::ContributionsAnchor");
             invalid!("Anchors are required for the continuity of group content evolution".to_string())
         },
-        EntryTypesUnit::GroupAuthArchiveAnchor => {
-            debug!("Checking delete EntryTypesUnit::GroupAuthArchiveAnchor");
+        EntryTypesUnit::ArchivedContributionsAnchor => {
+            debug!("Checking delete EntryTypesUnit::ArchivedContributionsAnchor");
             invalid!("Anchors are required for the continuity of group content evolution".to_string())
         },
         // entry_type_unit => invalid!(format!("Delete validation not implemented for entry type: {:?}", entry_type_unit )),

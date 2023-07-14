@@ -30,18 +30,18 @@ use coop_content::{
     EntryTypes,
     EntryTypesUnit,
     LinkTypes,
-    coop_content_types::{
+    coop_content_sdk::{
         // Entry Structs
         GroupEntry,
-        GroupAuthAnchorEntry,
-        GroupAuthArchiveAnchorEntry,
+        ContributionsAnchorEntry,
+        ArchivedContributionsAnchorEntry,
         // Input Structs
-        GroupAuthAnchorType,
+        ContributionAnchorTypes,
         GroupAuthInput,
         GetAllGroupContentInput,
         GetGroupContentInput,
-        CreateContentLinkInput,
-        CreateContentUpdateLinkInput,
+        CreateContributionLinkInput,
+        CreateContributionUpdateLinkInput,
     },
 
 };
@@ -93,8 +93,8 @@ pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
     let action_hash = create_entry( group.to_input() )?;
     let agent_id = agent_id()?;
 
-    for pubkey in group.authorities() {
-        let anchor = GroupAuthAnchorEntry( action_hash.to_owned(), pubkey );
+    for pubkey in group.contributors() {
+        let anchor = ContributionsAnchorEntry( action_hash.to_owned(), pubkey );
         let anchor_hash = hash_entry( &anchor )?;
         debug!("Creating Group Auth anchor ({}): {:#?}", anchor_hash, anchor );
         create_entry( anchor.to_input() )?;
@@ -112,7 +112,7 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionH
     debug!("Update group action: {}", input.base );
     let group_id = trace_origin_root( &input.base )?.0;
     let prev_group : GroupEntry = must_get( &input.base )?.try_into()?;
-    let authorities_diff = prev_group.authorities_diff( &input.entry );
+    let contributors_diff = prev_group.contributors_diff( &input.entry );
 
     let action_hash = update_entry( input.base.to_owned(), input.entry.to_input() )?;
 
@@ -121,41 +121,41 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionH
         create_link( action_hash.to_owned(), link.target, LinkTypes::GroupAuthArchive, link.tag )?;
     }
 
-    for pubkey in authorities_diff.removed {
+    for pubkey in contributors_diff.removed {
         debug!("Removed Agent: {}", pubkey );
-        let anchor = GroupAuthAnchorEntry( group_id.to_owned(), pubkey.to_owned() );
+        let anchor = ContributionsAnchorEntry( group_id.to_owned(), pubkey.to_owned() );
         let anchor_hash = hash_entry( &anchor )?;
-        let archive_anchor = GroupAuthArchiveAnchorEntry::new( action_hash.to_owned(), pubkey.to_owned() );
+        let archive_anchor = ArchivedContributionsAnchorEntry::new( action_hash.to_owned(), pubkey.to_owned() );
         let archive_anchor_hash = hash_entry( &archive_anchor )?;
 
         create_if_not_exists( &archive_anchor )?;
         create_link( action_hash.to_owned(), archive_anchor_hash.to_owned(), LinkTypes::GroupAuthArchive, () )?;
 
-        let creates = get_links( anchor_hash.to_owned(), LinkTypes::Content, None )?;
-        let updates = get_links( anchor_hash.to_owned(), LinkTypes::ContentUpdate, None )?;
+        let creates = get_links( anchor_hash.to_owned(), LinkTypes::Contribution, None )?;
+        let updates = get_links( anchor_hash.to_owned(), LinkTypes::ContributionUpdate, None )?;
 
         debug!("Copying {} creates for auth archive: {}", creates.len(), pubkey );
         for link in creates {
-            create_link( archive_anchor_hash.to_owned(), link.target, LinkTypes::Content, link.tag )?;
+            create_link( archive_anchor_hash.to_owned(), link.target, LinkTypes::Contribution, link.tag )?;
         }
 
         debug!("Copying {} updates for auth archive: {}", updates.len(), pubkey );
         for link in updates {
-            create_link( archive_anchor_hash.to_owned(), link.target, LinkTypes::ContentUpdate, link.tag )?;
+            create_link( archive_anchor_hash.to_owned(), link.target, LinkTypes::ContributionUpdate, link.tag )?;
         }
     }
 
-    for pubkey in authorities_diff.added {
+    for pubkey in contributors_diff.added {
         debug!("Added Agent: {}", pubkey );
-        let anchor = GroupAuthAnchorEntry( group_id.to_owned(), pubkey.to_owned() );
+        let anchor = ContributionsAnchorEntry( group_id.to_owned(), pubkey.to_owned() );
         let anchor_hash = hash_entry( &anchor )?;
         create_if_not_exists( &anchor )?;
         create_link( action_hash.to_owned(), anchor_hash, LinkTypes::GroupAuth, () )?;
     }
 
-    for pubkey in authorities_diff.intersection {
+    for pubkey in contributors_diff.intersection {
         debug!("Unchanged Agent: {}", pubkey );
-        let anchor = GroupAuthAnchorEntry( group_id.to_owned(), pubkey.to_owned() );
+        let anchor = ContributionsAnchorEntry( group_id.to_owned(), pubkey.to_owned() );
         let anchor_hash = hash_entry( &anchor )?;
         create_link( action_hash.to_owned(), anchor_hash, LinkTypes::GroupAuth, () )?;
     }
@@ -198,7 +198,7 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
 
     debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
     for auth_archive_addr in auth_archive_anchors.iter() {
-        let anchor : GroupAuthArchiveAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
+        let anchor : ArchivedContributionsAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
         content_creates.extend( anchor.create_targets()? );
 
         let archive_updates = anchor.update_targets()?;
@@ -212,9 +212,9 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
 
     let group_auth_anchors = GroupEntry::group_auth_anchor_hashes( &group_rev )?;
 
-    debug!("Found {} current authorities for group rev '{}'", group_auth_anchors.len(), group_rev );
+    debug!("Found {} current contributors for group rev '{}'", group_auth_anchors.len(), group_rev );
     for auth_anchor_addr in group_auth_anchors.iter() {
-        let anchor : GroupAuthAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
+        let anchor : ContributionsAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
         let content_targets = anchor.create_targets()?;
         debug!("Found {} content links for group authority '{}'", content_targets.len(), anchor.1 );
         content_creates.extend( content_targets );
@@ -225,7 +225,7 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
     for content_addr in content_creates {
         match content_addr.clone().into_action_hash() {
             Some(addr) => {
-                let evolutions = follow_evolutions_using_authorities_with_exceptions( &addr, &group.authorities(), &archived_updates )?;
+                let evolutions = follow_evolutions_using_authorities_with_exceptions( &addr, &group.contributors(), &archived_updates )?;
                 targets.push((
                     content_addr,
                     evolutions.last().unwrap().to_owned().into()
@@ -269,7 +269,7 @@ pub fn follow_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ex
 
     debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
     for auth_archive_addr in auth_archive_anchors.iter() {
-        let anchor : GroupAuthArchiveAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
+        let anchor : ArchivedContributionsAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
         debug!("Auth archive anchor: {:#?}", anchor );
 
         let content_ids = anchor.create_targets()?;
@@ -287,7 +287,7 @@ pub fn follow_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ex
 
     debug!("Found {} current authorities for group rev '{}'", group_auth_anchors.len(), group_rev );
     for auth_anchor_addr in group_auth_anchors.iter() {
-        let anchor : GroupAuthAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
+        let anchor : ContributionsAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
         debug!("Auth anchor: {:#?}", anchor );
 
         let content_ids = anchor.create_targets()?;
@@ -328,40 +328,40 @@ pub fn get_all_group_content_targets_shortcuts(group_id: ActionHash) -> ExternRe
 
 #[hdk_extern]
 pub fn group_auth_anchor_hash(input: GroupAuthInput) -> ExternResult<EntryHash> {
-    Ok( hash_entry( GroupAuthAnchorEntry( input.group_id, input.author ) )? )
+    Ok( hash_entry( ContributionsAnchorEntry( input.group_id, input.author ) )? )
 }
 
 #[hdk_extern]
 pub fn group_auth_archive_anchor_hash(input: GroupAuthInput) -> ExternResult<EntryHash> {
-    Ok( hash_entry( GroupAuthArchiveAnchorEntry::new( input.group_id, input.author ) )? )
+    Ok( hash_entry( ArchivedContributionsAnchorEntry::new( input.group_id, input.author ) )? )
 }
 
 
 #[hdk_extern]
-pub fn create_content_link(input: CreateContentLinkInput) -> ExternResult<ActionHash> {
+pub fn create_content_link(input: CreateContributionLinkInput) -> ExternResult<ActionHash> {
     let author = agent_id()?;
-    debug!("Creating content link from GroupAuthAnchorEntry( {}, {} ) => {}", input.group_id, author, input.content_target );
-    let anchor = GroupAuthAnchorEntry( input.group_id, author );
+    debug!("Creating content link from ContributionsAnchorEntry( {}, {} ) => {}", input.group_id, author, input.content_target );
+    let anchor = ContributionsAnchorEntry( input.group_id, author );
     let anchor_hash = hash_entry( &anchor )?;
 
     create_if_not_exists( &anchor )?;
 
-    Ok( create_link( anchor_hash, input.content_target, LinkTypes::Content, () )? )
+    Ok( create_link( anchor_hash, input.content_target, LinkTypes::Contribution, () )? )
 }
 
 
 #[hdk_extern]
-pub fn create_content_update_link(input: CreateContentUpdateLinkInput) -> ExternResult<ActionHash> {
+pub fn create_content_update_link(input: CreateContributionUpdateLinkInput) -> ExternResult<ActionHash> {
     let author = agent_id()?;
     let tag = format!("{}:{}", input.content_id, input.content_prev );
-    let anchor = GroupAuthAnchorEntry( input.group_id, author );
+    let anchor = ContributionsAnchorEntry( input.group_id, author );
     let anchor_hash = hash_entry( &anchor )?;
     debug!("Auth anchor: {:#?}", anchor );
 
     create_if_not_exists( &anchor )?;
 
     debug!("Creating content update link from {} --'{}'--> {}", anchor_hash, tag, input.content_next );
-    Ok( create_link( anchor_hash, input.content_next, LinkTypes::ContentUpdate, tag.into_bytes() )? )
+    Ok( create_link( anchor_hash, input.content_next, LinkTypes::ContributionUpdate, tag.into_bytes() )? )
 }
 
 
@@ -369,21 +369,21 @@ pub fn create_content_update_link(input: CreateContentUpdateLinkInput) -> Extern
 pub fn delete_group_auth_anchor_content_links(input: (GroupAuthInput, AnyLinkableHash)) -> ExternResult<Vec<ActionHash>> {
     debug!("Input: {:#?}", input );
     let base = match input.0.anchor_type {
-        GroupAuthAnchorType::Active => {
-            let anchor = GroupAuthAnchorEntry( input.0.group_id, input.0.author );
+        ContributionAnchorTypes::Active => {
+            let anchor = ContributionsAnchorEntry( input.0.group_id, input.0.author );
             debug!("Delete input anchor: {:#?}", anchor );
             hash_entry( anchor )?
         },
-        GroupAuthAnchorType::Archive => {
-            let anchor = GroupAuthArchiveAnchorEntry::new( input.0.group_id, input.0.author );
+        ContributionAnchorTypes::Archive => {
+            let anchor = ArchivedContributionsAnchorEntry::new( input.0.group_id, input.0.author );
             debug!("Delete input anchor: {:#?}", anchor );
             hash_entry( anchor )?
         },
     };
 
     let link_types = vec![
-        LinkTypes::Content,
-        LinkTypes::ContentUpdate,
+        LinkTypes::Contribution,
+        LinkTypes::ContributionUpdate,
     ];
     let links = get_links( base, link_types, None )?;
     let mut deleted = vec![];
@@ -421,7 +421,7 @@ pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> Exter
 
     debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
     for auth_archive_addr in auth_archive_anchors.iter() {
-        let anchor : GroupAuthArchiveAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
+        let anchor : ArchivedContributionsAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
 
         let archive_updates = anchor.update_targets()?;
         let update_actions : Vec<ActionHash> = archive_updates.iter()
@@ -435,7 +435,7 @@ pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> Exter
     Ok(
         follow_evolutions_using_authorities_with_exceptions(
             &base_addr,
-            &group.authorities(),
+            &group.contributors(),
             &archived_updates
         )?.last().unwrap().to_owned().into()
     )

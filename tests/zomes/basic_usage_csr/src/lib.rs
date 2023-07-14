@@ -1,6 +1,9 @@
-pub use coop_content_types::hdk;
-pub use coop_content_types::hdi_extensions;
-pub use coop_content_types::hdk_extensions;
+pub use basic_usage::test_types;
+pub use basic_usage::coop_content_sdk;
+
+pub use coop_content_sdk::hdk;
+pub use coop_content_sdk::hdi_extensions;
+pub use coop_content_sdk::hdk_extensions;
 
 use hdk::prelude::*;
 use hdi_extensions::{
@@ -12,10 +15,10 @@ use hdk_extensions::{
     // Inputs
     UpdateEntryInput,
 };
-use basic_usage::{
+use test_types::{
     ContentEntry,
 };
-use coop_content_types::{
+use coop_content_sdk::{
     GroupEntry,
     GetGroupContentInput,
     GetAllGroupContentInput,

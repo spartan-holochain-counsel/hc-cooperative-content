@@ -4,7 +4,7 @@ SHELL			= bash
 TARGET			= release
 TARGET_DIR		= target/wasm32-unknown-unknown/release
 SOURCE_FILES		= Makefile zomes/Cargo.* zomes/*/Cargo.toml zomes/*/src/*.rs zomes/*/src/*/* \
-				coop_content_types/Cargo.toml coop_content_types/src/*.rs
+				coop_content_sdk/Cargo.toml coop_content_sdk/src/*.rs
 
 # Zomes (WASM)
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
@@ -152,14 +152,14 @@ use-local-whi_hdk:
 		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/..\/whi_hdk_extensions" }/g'
 	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- tests/zomes/*/Cargo.toml \
 		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/..\/..\/whi_hdk_extensions" }/g'
-	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- coop_content_types/Cargo.toml \
+	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- coop_content_sdk/Cargo.toml \
 		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/whi_hdk_extensions" }/g'
 use-rust-whi_hdk:
 	git grep -l 'whi_hdk_extensions = {' -- zomes/*/Cargo.toml \
 		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
 	git grep -l 'whi_hdk_extensions = {' -- tests/zomes/*/Cargo.toml \
 		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
-	git grep -l 'whi_hdk_extensions = {' -- coop_content_types/Cargo.toml \
+	git grep -l 'whi_hdk_extensions = {' -- coop_content_sdk/Cargo.toml \
 		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
 
 
@@ -168,10 +168,11 @@ use-rust-whi_hdk:
 #
 COOP_DOCS		= target/doc/coop_content/index.html
 test-docs:
+	cd coop_content_sdk; cargo test --doc
 	cd zomes; cargo test --doc
 $(COOP_DOCS):		test-docs
 	cd zomes; cargo doc
-	@echo -e "\x1b[37mOpen docs in $(COOP_DOCS)\x1b[0m";
+	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$(COOP_DOCS)\x1b[0m";
 docs:			$(COOP_DOCS)
 docs-watch:
 	@inotifywait -r -m -e modify		\
@@ -179,7 +180,7 @@ docs-watch:
 			zomes/			\
 			hdi_extensions/		\
 			hdk_extensions/		\
-			coop_content_types	\
+			coop_content_sdk	\
 	| while read -r dir event file; do	\
 		echo -e "\x1b[37m$$event $$dir$$file\x1b[0m";\
 		make docs;			\

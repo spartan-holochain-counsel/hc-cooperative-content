@@ -1,21 +1,22 @@
-pub use coop_content_types;
-pub use coop_content_types::hdi;
-pub use coop_content_types::hdk;
-pub use coop_content_types::hdi_extensions;
+pub use test_types;
+pub use coop_content_sdk;
+pub use coop_content_sdk::hdi;
+pub use coop_content_sdk::hdk;
+pub use coop_content_sdk::hdi_extensions;
 
 use hdi::prelude::*;
 use hdk::prelude::debug;
 use hdi_extensions::{
     ScopedTypeConnector, scoped_type_connector,
 };
-pub use hdi_extensions::{
+use hdi_extensions::{
     // Macros
     valid, invalid,
 };
-use coop_content_types::{
+use coop_content_sdk::{
     validate_group_auth,
 };
-pub use test_types::{
+use test_types::{
     ContentEntry,
 };
 

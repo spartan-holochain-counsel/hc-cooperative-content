@@ -1,16 +1,16 @@
 mod validation;
 
-pub use coop_content_types;
-pub use coop_content_types::hdi;
-pub use coop_content_types::hdk;
-pub use coop_content_types::hdi_extensions;
-pub use coop_content_types::hdk_extensions;
-pub use coop_content_types::holo_hash;
+pub use coop_content_sdk;
+pub use coop_content_sdk::hdi;
+pub use coop_content_sdk::hdk;
+pub use coop_content_sdk::hdi_extensions;
+pub use coop_content_sdk::hdk_extensions;
+pub use coop_content_sdk::holo_hash;
 
 use serde::{
     Deserialize, Deserializer,
 };
-use coop_content_types::*;
+use coop_content_sdk::*;
 use hdi::prelude::*;
 use hdi_extensions::{
     guest_error,
@@ -29,10 +29,10 @@ pub enum EntryTypes {
 
     // Anchors
     #[entry_def]
-    GroupAuthAnchor(GroupAuthAnchorEntry),
+    ContributionsAnchor(ContributionsAnchorEntry),
 
     #[entry_def]
-    GroupAuthArchiveAnchor(GroupAuthArchiveAnchorEntry),
+    ArchivedContributionsAnchor(ArchivedContributionsAnchorEntry),
 }
 
 scoped_type_connector!(
@@ -40,12 +40,12 @@ scoped_type_connector!(
     EntryTypes::Group( GroupEntry )
 );
 scoped_type_connector!(
-    EntryTypesUnit::GroupAuthAnchor,
-    EntryTypes::GroupAuthAnchor( GroupAuthAnchorEntry )
+    EntryTypesUnit::ContributionsAnchor,
+    EntryTypes::ContributionsAnchor( ContributionsAnchorEntry )
 );
 scoped_type_connector!(
-    EntryTypesUnit::GroupAuthArchiveAnchor,
-    EntryTypes::GroupAuthArchiveAnchor( GroupAuthArchiveAnchorEntry )
+    EntryTypesUnit::ArchivedContributionsAnchor,
+    EntryTypes::ArchivedContributionsAnchor( ArchivedContributionsAnchorEntry )
 );
 
 
@@ -56,8 +56,8 @@ pub enum LinkTypes {
     Group,
     GroupAuth,
     GroupAuthArchive,
-    Content,
-    ContentUpdate,
+    Contribution,
+    ContributionUpdate,
 }
 
 impl TryFrom<String> for LinkTypes {
@@ -69,8 +69,8 @@ impl TryFrom<String> for LinkTypes {
                 "Group" => LinkTypes::Group,
                 "GroupAuth" => LinkTypes::GroupAuth,
                 "GroupAuthArchive" => LinkTypes::GroupAuthArchive,
-                "Content" => LinkTypes::Content,
-                "ContentUpdate" => LinkTypes::ContentUpdate,
+                "Contribution" => LinkTypes::Contribution,
+                "ContributionUpdate" => LinkTypes::ContributionUpdate,
                 _ => return Err(guest_error!(format!("Unknown LinkTypes variant: {}", name ))),
             }
         )

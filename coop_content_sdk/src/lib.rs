@@ -89,13 +89,13 @@ macro_rules! common_fields {
 //
 // Group Entry
 //
-/// An entry struct for defining a group and its group authorities
+/// An entry struct for defining a group and its members
 #[hdk_entry_helper]
 #[derive(Clone)]
 pub struct GroupEntry {
-    /// The list of agents with admin authorities in this group
+    /// The list of agents with admin authority in this group
     pub admins: Vec<AgentPubKey>,
-    /// The list of agents with write authorities in this group
+    /// The list of agents with write authority in this group
     pub members: Vec<AgentPubKey>,
     /// An indicator of whether this group is still active
     pub deleted: Option<bool>,
@@ -109,31 +109,47 @@ common_fields!( GroupEntry );
 
 impl GroupEntry {
     /// Get a list of the admins and members of this group
-    pub fn authorities(&self) -> Vec<AgentPubKey> {
+    pub fn contributors(&self) -> Vec<AgentPubKey> {
         vec![ self.admins.clone(), self.members.clone() ]
             .into_iter()
             .flatten()
             .collect()
     }
 
+    /// Check if the given agent is an admin or member
+    pub fn is_contributor(&self, agent: &AgentPubKey) -> bool {
+        // debug!("Checking contributors {:#?} for author {}", group.contributors(), author );
+        self.contributors().contains( agent )
+    }
+
+    /// Check if the given agent is an admin
+    pub fn is_admin(&self, agent: &AgentPubKey) -> bool {
+        self.admins.contains( agent )
+    }
+
+    /// Check if the given agent is a member (not an admin)
+    pub fn is_member(&self, agent: &AgentPubKey) -> bool {
+        self.admins.contains( agent )
+    }
+
     /// Return the differences between this group and the given group
-    pub fn authorities_diff(&self, other: &GroupEntry) -> AuthoritiesDiff {
-        let added: Vec<AgentPubKey> = other.authorities()
+    pub fn contributors_diff(&self, other: &GroupEntry) -> ContributorsDiff {
+        let added: Vec<AgentPubKey> = other.contributors()
             .into_iter()
-            .filter(|pubkey| !self.authorities().contains(pubkey))
+            .filter(|pubkey| !self.is_contributor(pubkey) )
             .collect();
 
-        let removed: Vec<AgentPubKey> = self.authorities()
+        let removed: Vec<AgentPubKey> = self.contributors()
             .into_iter()
-            .filter(|pubkey| !other.authorities().contains(pubkey))
+            .filter(|pubkey| !other.is_contributor(pubkey) )
             .collect();
 
-        let intersection: Vec<AgentPubKey> = self.authorities()
+        let intersection: Vec<AgentPubKey> = self.contributors()
             .into_iter()
-            .filter(|pubkey| other.authorities().contains(pubkey))
+            .filter(|pubkey| other.is_contributor(pubkey) )
             .collect();
 
-        AuthoritiesDiff {
+        ContributorsDiff {
             added,
             removed,
             intersection,
@@ -143,7 +159,7 @@ impl GroupEntry {
 
 /// The result of a group comparison
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AuthoritiesDiff {
+pub struct ContributorsDiff {
     pub added: Vec<AgentPubKey>,
     pub removed: Vec<AgentPubKey>,
     pub intersection: Vec<AgentPubKey>,
@@ -157,7 +173,19 @@ pub struct AuthoritiesDiff {
 /// An entry struct (anchor) representing a group authority's personal anchor
 #[hdk_entry_helper]
 #[derive(Clone)]
-pub struct GroupAuthAnchorEntry( pub ActionHash, pub AgentPubKey );
+pub struct ContributionsAnchorEntry( pub ActionHash, pub AgentPubKey );
+
+impl ContributionsAnchorEntry {
+    /// Get the agent pubkey of this auth anchor
+    pub fn author(&self) -> &AgentPubKey {
+        &self.1
+    }
+
+    /// Get the group revision (action hash) of this auth anchor
+    pub fn group(&self) -> &ActionHash {
+        &self.0
+    }
+}
 
 
 
@@ -167,11 +195,23 @@ pub struct GroupAuthAnchorEntry( pub ActionHash, pub AgentPubKey );
 /// An entry struct (anchor) representing a former authority of a group
 #[hdk_entry_helper]
 #[derive(Clone)]
-pub struct GroupAuthArchiveAnchorEntry( pub ActionHash, pub AgentPubKey, String );
+pub struct ArchivedContributionsAnchorEntry( String, pub ActionHash, pub AgentPubKey );
 
-impl GroupAuthArchiveAnchorEntry {
+impl ArchivedContributionsAnchorEntry {
     pub fn new(group_id: ActionHash, agent: AgentPubKey) -> Self {
-        GroupAuthArchiveAnchorEntry(group_id, agent, "archive".to_string())
+        ArchivedContributionsAnchorEntry("archive".to_string(), group_id, agent)
+    }
+}
+
+impl ArchivedContributionsAnchorEntry {
+    /// Get the agent pubkey of this auth anchor
+    pub fn author(&self) -> &AgentPubKey {
+        &self.2
+    }
+
+    /// Get the group revision (action hash) of this auth anchor
+    pub fn group(&self) -> &ActionHash {
+        &self.1
     }
 }
 
@@ -180,33 +220,33 @@ impl GroupAuthArchiveAnchorEntry {
 #[hdk_entry_helper]
 #[serde(untagged)]
 #[derive(Clone)]
-pub enum GroupAuthAnchor {
-    Active(GroupAuthAnchorEntry),
-    Archive(GroupAuthArchiveAnchorEntry),
+pub enum ContributionAnchors {
+    Active(ContributionsAnchorEntry),
+    Archive(ArchivedContributionsAnchorEntry),
 }
 
-impl GroupAuthAnchor {
+impl ContributionAnchors {
     /// Get the agent pubkey of this auth anchor
     pub fn author(&self) -> &AgentPubKey {
         match &self {
-            GroupAuthAnchor::Active(anchor) => &anchor.1,
-            GroupAuthAnchor::Archive(anchor) => &anchor.1,
+            ContributionAnchors::Active(anchor) => &anchor.1,
+            ContributionAnchors::Archive(anchor) => &anchor.2,
         }
     }
 
     /// Get the group revision (action hash) of this auth anchor
     pub fn group(&self) -> &ActionHash {
         match &self {
-            GroupAuthAnchor::Active(anchor) => &anchor.0,
-            GroupAuthAnchor::Archive(anchor) => &anchor.0,
+            ContributionAnchors::Active(anchor) => &anchor.0,
+            ContributionAnchors::Archive(anchor) => &anchor.1,
         }
     }
 
-    /// Determine if this enum's item is [`GroupAuthAnchor::Archive`]
+    /// Determine if this enum's item is [`ContributionAnchors::Archive`]
     pub fn is_archive(&self) -> bool {
         match &self {
-            GroupAuthAnchor::Active(_) => false,
-            GroupAuthAnchor::Archive(_) => true,
+            ContributionAnchors::Active(_) => false,
+            ContributionAnchors::Archive(_) => true,
         }
     }
 }
@@ -218,12 +258,12 @@ impl GroupAuthAnchor {
 /// intended type when passing around the group/author anchor values.
 #[derive(Clone, Debug, Serialize)]
 #[serde(untagged)]
-pub enum GroupAuthAnchorType {
+pub enum ContributionAnchorTypes {
     Active,
     Archive,
 }
 
-impl<'de> serde::Deserialize<'de> for GroupAuthAnchorType {
+impl<'de> serde::Deserialize<'de> for ContributionAnchorTypes {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -233,13 +273,13 @@ impl<'de> serde::Deserialize<'de> for GroupAuthAnchorType {
         Ok(
             match input {
                 Some(name) => match name.to_lowercase().as_str() {
-                    "active" => GroupAuthAnchorType::Active,
-                    "archive" | "inactive" => GroupAuthAnchorType::Archive,
+                    "active" => ContributionAnchorTypes::Active,
+                    "archive" | "inactive" => ContributionAnchorTypes::Archive,
                     lw_name => Err(serde::de::Error::custom(
-                        format!("No match for '{}' in GroupAuthAnchorType enum", lw_name )
+                        format!("No match for '{}' in ContributionAnchorTypes enum", lw_name )
                     ))?,
                 },
-                None => GroupAuthAnchorType::Active,
+                None => ContributionAnchorTypes::Active,
             }
         )
     }
@@ -252,14 +292,14 @@ impl<'de> serde::Deserialize<'de> for GroupAuthAnchorType {
 //
 /// Input required for registering new content to a group
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CreateContentLinkInput {
+pub struct CreateContributionLinkInput {
     pub group_id: ActionHash,
     pub content_target: AnyLinkableHash,
 }
 
 /// Input required for registering a content update to a group
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CreateContentUpdateLinkInput {
+pub struct CreateContributionUpdateLinkInput {
     pub group_id: ActionHash,
     pub content_id: AnyLinkableHash,
     pub content_prev: AnyLinkableHash,
@@ -271,7 +311,7 @@ pub struct CreateContentUpdateLinkInput {
 pub struct GroupAuthInput {
     pub group_id: ActionHash,
     pub author: AgentPubKey,
-    pub anchor_type: GroupAuthAnchorType,
+    pub anchor_type: ContributionAnchorTypes,
 }
 
 /// Input for following all content evolutions in a group
@@ -347,14 +387,14 @@ impl GroupRef for (ActionHash, ActionHash) {
 #[macro_export]
 macro_rules! group_ref {
     ( $type:ident, $($ref:tt).* ) => {
-        impl coop_content_types::GroupRef for $type {
+        impl coop_content_sdk::GroupRef for $type {
             fn group_ref(&self) -> (ActionHash, ActionHash) {
                 self$(.$ref)*.to_owned()
             }
         }
     };
     ( $type:ident, $($id:tt).*, $($rev:tt).* ) => {
-        impl coop_content_types::GroupRef for $type {
+        impl coop_content_sdk::GroupRef for $type {
             fn group_ref(&self) -> (ActionHash, ActionHash) {
                 (
                     self$(.$id)*.to_owned(),
@@ -433,8 +473,7 @@ where
         None => return Err(format!("Action ({}) does not contain an entry hash", group_ref.1 )),
     };
 
-    // debug!("Checking authorities {:#?} for author {}", group.authorities(), author );
-    if !group.authorities().contains( author ) {
+    if !group.is_contributor( author ) {
         return Err(format!("Agent ({}) is not authorized to update content managed by group {}", author, group_ref.0 ))?;
     }
 
@@ -455,7 +494,7 @@ where
 /// call_local_zome!(
 ///     "coop_content_csr",
 ///     "create_content_link",
-///     coop_content_types::CreateContentLinkInput {
+///     coop_content_sdk::CreateContributionLinkInput {
 ///         group_id: ActionHash::try_from(group_id).unwrap(),
 ///         content_target: ActionHash::try_from(content_addr).unwrap().into(),
 ///     }
@@ -465,8 +504,8 @@ where
 macro_rules! call_local_zome {
     ( $zome:literal, $fn:literal, $($input:tt)+ ) => {
         {
-            use coop_content_types::hdk;
-            use coop_content_types::hdi_extensions::guest_error;
+            use coop_content_sdk::hdk;
+            use coop_content_sdk::hdi_extensions::guest_error;
 
             match hdk::prelude::call(
                 hdk::prelude::CallTargetCell::Local,
@@ -495,7 +534,7 @@ macro_rules! call_local_zome {
 ///     ActionHash,
 ///     "coop_content_csr",
 ///     "create_content_link",
-///     coop_content_types::CreateContentLinkInput {
+///     coop_content_sdk::CreateContributionLinkInput {
 ///         group_id: ActionHash::try_from(group_id).unwrap(),
 ///         content_target: ActionHash::try_from(content_addr).unwrap().into(),
 ///     }
@@ -504,21 +543,21 @@ macro_rules! call_local_zome {
 #[macro_export]
 macro_rules! call_local_zome_decode {
     ( $zome:literal, $fn:literal, $($input:tt)+ ) => {
-        coop_content_types::call_local_zome!( $zome, $fn, $($input)+ )?
+        coop_content_sdk::call_local_zome!( $zome, $fn, $($input)+ )?
             .decode()
             .map_err(|err| hdk::prelude::wasm_error!(hdk::prelude::WasmErrorInner::from(err)) )
     };
     ( $into_type:ident, $zome:literal, $fn:literal, $($input:tt)+ ) => {
-        coop_content_types::call_local_zome!( $zome, $fn, $($input)+ )?
+        coop_content_sdk::call_local_zome!( $zome, $fn, $($input)+ )?
             .decode::<$into_type>()
             .map_err(|err| hdk::prelude::wasm_error!(hdk::prelude::WasmErrorInner::from(err)) )
     };
 }
 
 
-/// Input required for macros `register_content_to_group` and `register_content_update_to_group`
+/// Input required for macros [`register_content_to_group`] and [`register_content_update_to_group`]
 #[derive(Clone)]
-pub struct RegisterContentMacroInput<T>
+pub struct RegisterContributionMacroInput<T>
 where
     T: GroupRef + Clone,
 {
@@ -536,7 +575,7 @@ where
 /// - #2 - `<zome name>, <template>`
 /// - #3 - `<template>`
 ///
-/// The input template is [`RegisterContentMacroInput`].
+/// The input template is [`RegisterContributionMacroInput`].
 ///
 /// This macro makes a local zome call using these default values:
 /// - Zome name: `coop_content_csr`
@@ -599,14 +638,14 @@ where
 macro_rules! register_content_to_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_types::GroupRef;
-            let input = coop_content_types::RegisterContentMacroInput $($def)*;
+            use coop_content_sdk::GroupRef;
+            let input = coop_content_sdk::RegisterContributionMacroInput $($def)*;
 
-            coop_content_types::call_local_zome_decode!(
+            coop_content_sdk::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
-                coop_content_types::CreateContentLinkInput {
+                coop_content_sdk::CreateContributionLinkInput {
                     group_id: input.entry.group_ref().0,
                     content_target: input.target.clone().into(),
                 }
@@ -614,10 +653,10 @@ macro_rules! register_content_to_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_types::register_content_to_group!( $zome, "create_content_link", $($def)* )
+        coop_content_sdk::register_content_to_group!( $zome, "create_content_link", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_types::register_content_to_group!( "coop_content_csr", $($def)* )
+        coop_content_sdk::register_content_to_group!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -629,7 +668,7 @@ macro_rules! register_content_to_group {
 /// - #2 - `<zome name>, <template>`
 /// - #3 - `<template>`
 ///
-/// The input template is [`RegisterContentMacroInput`].
+/// The input template is [`RegisterContributionMacroInput`].
 ///
 /// This macro makes a local zome call using these default values:
 /// - Zome name: `coop_content_csr`
@@ -697,12 +736,12 @@ macro_rules! register_content_to_group {
 macro_rules! register_content_update_to_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_types::hdi_extensions::{
+            use coop_content_sdk::hdi_extensions::{
                 trace_origin, guest_error,
             };
-            use coop_content_types::GroupRef;
+            use coop_content_sdk::GroupRef;
 
-            let input = coop_content_types::RegisterContentMacroInput $($def)*;
+            let input = coop_content_sdk::RegisterContributionMacroInput $($def)*;
             let history = trace_origin( &input.target )?;
 
             if history.len() < 2 {
@@ -712,11 +751,11 @@ macro_rules! register_content_update_to_group {
             let content_id = &history[ history.len() - 1 ].0;
             let content_prev_rev = &history[1].0;
 
-            coop_content_types::call_local_zome_decode!(
+            coop_content_sdk::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
-                coop_content_types::CreateContentUpdateLinkInput {
+                coop_content_sdk::CreateContributionUpdateLinkInput {
                     group_id: input.entry.group_ref().0,
                     content_id: content_id.clone().into(),
                     content_prev: content_prev_rev.clone().into(),
@@ -726,15 +765,15 @@ macro_rules! register_content_update_to_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_types::register_content_update_to_group!( $zome, "create_content_update_link", $($def)* )
+        coop_content_sdk::register_content_update_to_group!( $zome, "create_content_update_link", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_types::register_content_update_to_group!( "coop_content_csr", $($def)* )
+        coop_content_sdk::register_content_update_to_group!( "coop_content_csr", $($def)* )
     };
 }
 
 
-/// Input required for macro `get_group_content_latest`
+/// Input required for macro [`get_group_content_latest`]
 #[derive(Clone)]
 pub struct GetGroupContentMacroInput {
     pub group_id: ActionHash,
@@ -798,13 +837,13 @@ pub struct GetGroupContentMacroInput {
 macro_rules! get_group_content_latest {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_types::hdk_extensions;
-            use coop_content_types::hdk_extensions::resolve_action_addr;
-            use coop_content_types::hdi_extensions::{
+            use coop_content_sdk::hdk_extensions;
+            use coop_content_sdk::hdk_extensions::resolve_action_addr;
+            use coop_content_sdk::hdi_extensions::{
                 trace_origin, guest_error,
             };
 
-            let input = coop_content_types::GetGroupContentMacroInput $($def)*;
+            let input = coop_content_sdk::GetGroupContentMacroInput $($def)*;
             let action_addr = resolve_action_addr( &input.content_id )?;
             let history = trace_origin( &action_addr )?;
 
@@ -816,11 +855,11 @@ macro_rules! get_group_content_latest {
                 Err(guest_error!(format!("Given 'content_id' must be an ID (create action); not an update action")))?
             }
 
-            coop_content_types::call_local_zome_decode!(
+            coop_content_sdk::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
-                coop_content_types::GetGroupContentInput {
+                coop_content_sdk::GetGroupContentInput {
                     group_id: input.group_id,
                     content_id: input.content_id,
                     full_trace: None,
@@ -829,15 +868,15 @@ macro_rules! get_group_content_latest {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_types::get_group_content_latest!( $zome, "get_group_content_latest_shortcuts", $($def)* )
+        coop_content_sdk::get_group_content_latest!( $zome, "get_group_content_latest_shortcuts", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_types::get_group_content_latest!( "coop_content_csr", $($def)* )
+        coop_content_sdk::get_group_content_latest!( "coop_content_csr", $($def)* )
     };
 }
 
 
-/// Input required for macro `get_all_group_content_latest`
+/// Input required for macro [`get_all_group_content_latest`]
 #[derive(Clone)]
 pub struct GetAllGroupContentMacroInput {
     pub group_id: ActionHash,
@@ -895,11 +934,11 @@ pub struct GetAllGroupContentMacroInput {
 macro_rules! get_all_group_content_latest {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_types::hdk;
+            use coop_content_sdk::hdk;
 
-            type Response = hdk::prelude::ExternResult<coop_content_types::LinkPointerMap>;
-            let input = coop_content_types::GetAllGroupContentMacroInput $($def)*;
-            let result : Response = coop_content_types::call_local_zome_decode!(
+            type Response = hdk::prelude::ExternResult<coop_content_sdk::LinkPointerMap>;
+            let input = coop_content_sdk::GetAllGroupContentMacroInput $($def)*;
+            let result : Response = coop_content_sdk::call_local_zome_decode!(
                 $zome,
                 $fn_name,
                 input.group_id
@@ -908,10 +947,10 @@ macro_rules! get_all_group_content_latest {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_types::get_all_group_content_latest!( $zome, "get_all_group_content_targets_shortcuts", $($def)* )
+        coop_content_sdk::get_all_group_content_latest!( $zome, "get_all_group_content_targets_shortcuts", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_types::get_all_group_content_latest!( "coop_content_csr", $($def)* )
+        coop_content_sdk::get_all_group_content_latest!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -970,7 +1009,7 @@ macro_rules! create_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
             let input : GroupEntry = $($def)*;
-            coop_content_types::call_local_zome_decode!(
+            coop_content_sdk::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
@@ -979,10 +1018,10 @@ macro_rules! create_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_types::create_group!( $zome, "create_group", $($def)* )
+        coop_content_sdk::create_group!( $zome, "create_group", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_types::create_group!( "coop_content_csr", $($def)* )
+        coop_content_sdk::create_group!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -1034,7 +1073,7 @@ macro_rules! get_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
             let input : ActionHash = $($def)*;
-            coop_content_types::call_local_zome_decode!(
+            coop_content_sdk::call_local_zome_decode!(
                 GroupEntry,
                 $zome,
                 $fn_name,
@@ -1043,10 +1082,10 @@ macro_rules! get_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_types::get_group!( $zome, "get_group", $($def)* )
+        coop_content_sdk::get_group!( $zome, "get_group", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_types::get_group!( "coop_content_csr", $($def)* )
+        coop_content_sdk::get_group!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -1058,7 +1097,7 @@ macro_rules! get_group {
 /// - #2 - `<zome name>, <template>`
 /// - #3 - `<template>`
 ///
-/// The input template is [`UpdateEntryInput<GroupEntry>`].
+/// The input template is [`hdk_extensions::UpdateEntryInput<GroupEntry>`].
 ///
 /// This macro makes a local zome call using these default values:
 /// - Zome name: `coop_content_csr`
@@ -1114,10 +1153,10 @@ macro_rules! get_group {
 macro_rules! update_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_types::hdk_extensions;
+            use coop_content_sdk::hdk_extensions;
 
             let input = hdk_extensions::UpdateEntryInput::<GroupEntry> $($def)*;
-            coop_content_types::call_local_zome_decode!(
+            coop_content_sdk::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
@@ -1126,9 +1165,9 @@ macro_rules! update_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_types::update_group!( $zome, "update_group", $($def)* )
+        coop_content_sdk::update_group!( $zome, "update_group", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_types::update_group!( "coop_content_csr", $($def)* )
+        coop_content_sdk::update_group!( "coop_content_csr", $($def)* )
     };
 }

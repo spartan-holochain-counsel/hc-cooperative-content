@@ -16,8 +16,8 @@ use crate::{
     // EntryTypes,
     LinkTypes,
     GroupEntry,
-    GroupAuthAnchorEntry,
-    GroupAuthAnchor,
+    ContributionsAnchorEntry,
+    ContributionAnchors,
 };
 
 
@@ -25,7 +25,7 @@ fn validate_content_link_base(
     base: &AnyLinkableHash,
     create: &CreateLink,
 ) -> ExternResult<()> {
-    let anchor : GroupAuthAnchor = summon_app_entry( &base )?;
+    let anchor : ContributionAnchors = summon_app_entry( &base )?;
 
     if anchor.is_archive() {
         let group : GroupEntry = must_get_valid_record( anchor.group().to_owned() )?.try_into()?;
@@ -48,30 +48,30 @@ pub fn validation(
     create: CreateLink,
 ) -> ExternResult<ValidateCallbackResult> {
     match link_type {
-        LinkTypes::Content => {
-            debug!("Checking LinkTypes::Content base address: {}", base_address );
+        LinkTypes::Contribution => {
+            debug!("Checking LinkTypes::Contribution base address: {}", base_address );
 
             validate_content_link_base( &base_address, &create )?;
 
             valid!()
         },
-        LinkTypes::ContentUpdate => {
-            debug!("Checking LinkTypes::ContentUpdate");
+        LinkTypes::ContributionUpdate => {
+            debug!("Checking LinkTypes::ContributionUpdate");
 
             validate_content_link_base( &base_address, &create )?;
 
             let tag_str = match String::from_utf8( tag.into_inner() ) {
                 Ok(text) => text,
-                Err(err) => invalid!(format!("Content update link tag must be a UTF8 string: {}", err )),
+                Err(err) => invalid!(format!("Contribution update link tag must be a UTF8 string: {}", err )),
             };
 
             if !tag_str.contains(":") {
-                invalid!(format!("Content update link has malformed tag: {}", tag_str ))
+                invalid!(format!("Contribution update link has malformed tag: {}", tag_str ))
             }
 
             let (tag_id, tag_rev) = match tag_str.split_once(":") {
                 Some(parts) => parts,
-                None => invalid!(format!("Content update link has malformed tag: {}", tag_str )),
+                None => invalid!(format!("Contribution update link has malformed tag: {}", tag_str )),
             };
 
             let content_id = match AnyLinkableHash::try_from_string( tag_id ) {
@@ -90,7 +90,7 @@ pub fn validation(
                 AnyLinkableHashPrimitive::Action(rev_addr)
             ) = (content_id.into_primitive(), content_rev.into_primitive()) {
                 if id_addr != trace_origin_root( &rev_addr )?.0 {
-                    invalid!(format!("Tag parts do not match; Content update link tag ID is not the root of the tag revision: {}", tag_str ))
+                    invalid!(format!("Tag parts do not match; Contribution update link tag ID is not the root of the tag revision: {}", tag_str ))
                 }
             }
 
@@ -121,9 +121,9 @@ pub fn validation(
                 invalid!("The author of a group auth link must be an admin of the base group".to_string())
             }
 
-            let anchor : GroupAuthAnchorEntry = summon_app_entry( &target_address )?;
+            let anchor : ContributionsAnchorEntry = summon_app_entry( &target_address )?;
 
-            if !group.authorities().contains( &anchor.1 ) {
+            if !group.contributors().contains( &anchor.1 ) {
                 invalid!(format!("Links to group auth anchors must match an authority in the group revision they are based off of"))
             }
 

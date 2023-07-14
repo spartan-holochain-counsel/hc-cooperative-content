@@ -8,6 +8,6 @@ name = "basic_usage"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-coop_content_types = { path = "../../../coop_content_types" }
+hc_coop_content_sdk = { path = "../../../coop_content_sdk" }
 serde = "1"
 test_types = {path = "../../test_types"}

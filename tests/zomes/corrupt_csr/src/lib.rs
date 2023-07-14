@@ -1,6 +1,6 @@
 pub use coop_content::hdk;
 pub use coop_content::hdi_extensions;
-pub use coop_content::coop_content_types;
+pub use coop_content::coop_content_sdk;
 
 use hdk::prelude::*;
 use hdi_extensions::{
@@ -9,9 +9,9 @@ use hdi_extensions::{
 use coop_content::{
     LinkTypes,
 };
-use coop_content_types::{
-    GroupAuthAnchorEntry,
-    GroupAuthArchiveAnchorEntry,
+use coop_content_sdk::{
+    ContributionsAnchorEntry,
+    ArchivedContributionsAnchorEntry,
 };
 
 
@@ -39,26 +39,26 @@ pub struct InvalidAuthAnchorInput {
 #[hdk_extern]
 pub fn invalid_auth_anchor_link(input: InvalidAuthAnchorInput) -> ExternResult<()> {
     debug!("InvalidAuthAnchorInput: {:#?}", input );
-    let anchor = GroupAuthAnchorEntry( input.group_id.to_owned(), input.anchor_agent.to_owned() );
+    let anchor = ContributionsAnchorEntry( input.group_id.to_owned(), input.anchor_agent.to_owned() );
     let anchor_hash = hash_entry( &anchor )?;
 
-    create_link( anchor_hash, input.target, LinkTypes::Content, () )?;
+    create_link( anchor_hash, input.target, LinkTypes::Contribution, () )?;
 
     Ok(())
 }
 
 
 #[derive(Clone, Deserialize, Debug)]
-pub struct InvalidGroupAuthInput {
+pub struct InvalidContributionsInput {
     group_id: ActionHash,
     group_rev: ActionHash,
     anchor_agent: AgentPubKey,
 }
 
 #[hdk_extern]
-pub fn invalid_group_auth_link(input: InvalidGroupAuthInput) -> ExternResult<()> {
-    debug!("InvalidGroupAuthInput: {:#?}", input );
-    let anchor = GroupAuthAnchorEntry( input.group_id, input.anchor_agent );
+pub fn invalid_group_auth_link(input: InvalidContributionsInput) -> ExternResult<()> {
+    debug!("InvalidContributionsInput: {:#?}", input );
+    let anchor = ContributionsAnchorEntry( input.group_id, input.anchor_agent );
     create_entry( anchor.to_input() )?;
     let anchor_hash = hash_entry( &anchor )?;
 
@@ -69,8 +69,8 @@ pub fn invalid_group_auth_link(input: InvalidGroupAuthInput) -> ExternResult<()>
 
 
 #[hdk_extern]
-pub fn delete_group_auth_link(input: InvalidGroupAuthInput) -> ExternResult<()> {
-    let anchor = GroupAuthAnchorEntry( input.group_id, input.anchor_agent );
+pub fn delete_group_auth_link(input: InvalidContributionsInput) -> ExternResult<()> {
+    let anchor = ContributionsAnchorEntry( input.group_id, input.anchor_agent );
     let anchor_hash = hash_entry( &anchor )?;
     let links = get_links( input.group_rev.clone(), LinkTypes::GroupAuth, None )?;
 
@@ -86,15 +86,15 @@ pub fn delete_group_auth_link(input: InvalidGroupAuthInput) -> ExternResult<()> 
 
 
 #[derive(Clone, Deserialize, Debug)]
-pub struct InvalidGroupAuthArchiveLinkInput {
+pub struct InvalidArchivedContributionsLinkInput {
     group_rev: ActionHash,
     anchor_agent: AgentPubKey,
 }
 
 #[hdk_extern]
-pub fn invalid_group_auth_archive_link(input: InvalidGroupAuthArchiveLinkInput) -> ExternResult<()> {
-    debug!("InvalidGroupAuthArchiveLinkInput: {:#?}", input );
-    let anchor = GroupAuthArchiveAnchorEntry::new( input.group_rev.to_owned(), input.anchor_agent );
+pub fn invalid_group_auth_archive_link(input: InvalidArchivedContributionsLinkInput) -> ExternResult<()> {
+    debug!("InvalidArchivedContributionsLinkInput: {:#?}", input );
+    let anchor = ArchivedContributionsAnchorEntry::new( input.group_rev.to_owned(), input.anchor_agent );
     create_entry( anchor.to_input() )?;
     let anchor_hash = hash_entry( &anchor )?;
 
@@ -114,10 +114,10 @@ pub struct InvalidArchiveLinkInput {
 #[hdk_extern]
 pub fn invalid_archive_link(input: InvalidArchiveLinkInput) -> ExternResult<()> {
     debug!("InvalidArchiveLinkInput: {:#?}", input );
-    let anchor = GroupAuthArchiveAnchorEntry::new( input.group_rev, input.archived_agent );
+    let anchor = ArchivedContributionsAnchorEntry::new( input.group_rev, input.archived_agent );
     create_entry( anchor.to_input() )?;
     let archive_anchor_hash = hash_entry( &anchor )?;
-    create_link( archive_anchor_hash.to_owned(), input.target.to_owned(), LinkTypes::Content, () )?;
+    create_link( archive_anchor_hash.to_owned(), input.target.to_owned(), LinkTypes::Contribution, () )?;
 
     Ok(())
 }
@@ -132,7 +132,7 @@ pub struct InvalidLinkBaseInput {
 #[hdk_extern]
 pub fn invalid_content_link_base(input: InvalidLinkBaseInput) -> ExternResult<()> {
     debug!("InvalidLinkBaseInput: {:#?}", input );
-    create_link( input.base.to_owned(), input.target.to_owned(), LinkTypes::Content, () )?;
+    create_link( input.base.to_owned(), input.target.to_owned(), LinkTypes::Contribution, () )?;
 
     Ok(())
 }

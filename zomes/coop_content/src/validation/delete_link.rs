@@ -11,7 +11,7 @@ use crate::hdi_extensions::{
 use crate::{
     LinkTypes,
     GroupEntry,
-    GroupAuthAnchor,
+    ContributionAnchors,
 };
 
 
@@ -31,26 +31,26 @@ pub fn validation(
     };
 
     match link_type {
-        LinkTypes::Content | LinkTypes::ContentUpdate => {
-            debug!("Checking LinkTypes::Content[Update] delete");
+        LinkTypes::Contribution | LinkTypes::ContributionUpdate => {
+            debug!("Checking LinkTypes::Contribution[Update] delete");
             // Deletion is valid when
             // - the base is an archive anchor, if the author is an admin
             // - the base is an auth anchor, if the author is the matching anchor agent
-            let anchor : GroupAuthAnchor = summon_app_entry( &base_address )?;
+            let anchor : ContributionAnchors = summon_app_entry( &base_address )?;
 
             debug!("Base address anchor: {:#?}", anchor );
             match anchor {
-                GroupAuthAnchor::Active(entry) => {
-                    if entry.1 != delete.author {
-                        invalid!(format!("A content [update] link based on a group auth anchor can only be deleted by the matching anchor agent ({})", entry.1 ))
+                ContributionAnchors::Active(entry) => {
+                    if *entry.author() != delete.author {
+                        invalid!(format!("A content [update] link based on a group auth anchor can only be deleted by the matching anchor agent ({})", entry.author() ))
                     }
                 },
-                GroupAuthAnchor::Archive(entry) => {
-                    let group : GroupEntry = must_get_valid_record( entry.0.clone() )?.try_into()?;
+                ContributionAnchors::Archive(entry) => {
+                    let group : GroupEntry = must_get_valid_record( entry.group().to_owned() )?.try_into()?;
 
                     debug!("Archive anchor group revision: {:#?}", group );
-                    if !group.authorities().contains( &delete.author )  {
-                        invalid!(format!("A content [update] link based on a group auth archive anchor can only be deleted by an admin in the anchor's group revision ({})", entry.0 ))
+                    if !group.contributors().contains( &delete.author )  {
+                        invalid!(format!("A content [update] link based on a group auth archive anchor can only be deleted by an admin in the anchor's group revision ({})", entry.group() ))
                     }
                 },
             };
