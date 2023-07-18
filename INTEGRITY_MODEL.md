@@ -211,6 +211,20 @@ be solved with some form of rate-limiting, but it seemed simpler to have a littl
 "group auth" links in order to avoid pollution.
 
 
+#### Why not base all contribution links from the latest group revision?
+
+TLDR;
+1. That makes it increasingly more expensive to update the group as the contributions grow
+
+If all the contribution links were based from the latest group revision, all the links from the
+previous group revision need to be copied to the new revision.  As the contributions grow over time,
+there are increasingly more links to be copied which could quite easily become unreasonably
+burdensome.  Using the contributors as an anchor-point moves the need for copying from contributions
+to contributors.  It seems logically to assume that the number of contributors will always be less
+than contributions' and that the contributors list may not increase over time.  Therefore, it will
+be more sustainable to avoid contributions being based from group revisions.
+
+
 #### Why and when to change the content author group ID?
 
 TLDR;
