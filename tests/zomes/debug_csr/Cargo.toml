@@ -9,4 +9,4 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 serde = "1"
-whi_hdk_extensions = { path = "../../../../whi_hdk_extensions" }
+whi_hdk_extensions = "0.1"

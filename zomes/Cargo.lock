@@ -2654,6 +2654,8 @@ dependencies = [
 [[package]]
 name = "whi_hdk_extensions"
 version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a38655c120d07a9fb8736eb4650ecf1e6f4dd7127f67333cee6ccc72dfde6e0"
 dependencies = [
  "hdk",
  "serde",

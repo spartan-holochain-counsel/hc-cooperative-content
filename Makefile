@@ -51,6 +51,18 @@ use-npm-backdrop:
 
 
 #
+# Packages
+#
+preview-crate:			test-debug
+	cd coop_content_sdk; cargo publish --dry-run --allow-dirty
+publish-crate:			test-debug .cargo/credentials
+	cd coop_content_sdk; cargo publish
+.cargo/credentials:
+	cp ~/$@ $@
+
+
+
+#
 # Testing
 #
 reset:
@@ -136,27 +148,12 @@ update-hdi-version:
 HDIEV	= "0.1"
 HDKEV	= "0.1"
 
-use-local-whi_hdi:
-	git grep -l 'whi_hdi_extensions = $(HDIEV)' -- zomes/*/Cargo.toml \
-		| xargs sed -i 's/whi_hdi_extensions = $(HDIEV)/whi_hdi_extensions = { path = "..\/..\/..\/whi_hdi_extensions" }/g'
-	git grep -l 'whi_hdi_extensions = $(HDIEV)' -- tests/zomes/*/Cargo.toml \
-		| xargs sed -i 's/whi_hdi_extensions = $(HDIEV)/whi_hdi_extensions = { path = "..\/..\/..\/..\/whi_hdi_extensions" }/g'
-use-rust-whi_hdi:
-	git grep -l 'whi_hdi_extensions = {' -- zomes/*/Cargo.toml \
-		| xargs sed -i 's/whi_hdi_extensions = { path = "..\/..\/..\/whi_hdi_extensions" }/whi_hdi_extensions = $(HDIEV)/g'
-	git grep -l 'whi_hdi_extensions = {' -- tests/zomes/*/Cargo.toml \
-		| xargs sed -i 's/whi_hdi_extensions = { path = "..\/..\/..\/..\/whi_hdi_extensions" }/whi_hdi_extensions = $(HDIEV)/g'
-
 use-local-whi_hdk:
-	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- zomes/*/Cargo.toml \
-		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/..\/whi_hdk_extensions" }/g'
 	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- tests/zomes/*/Cargo.toml \
 		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/..\/..\/whi_hdk_extensions" }/g'
 	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- coop_content_sdk/Cargo.toml \
 		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/whi_hdk_extensions" }/g'
 use-rust-whi_hdk:
-	git grep -l 'whi_hdk_extensions = {' -- zomes/*/Cargo.toml \
-		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
 	git grep -l 'whi_hdk_extensions = {' -- tests/zomes/*/Cargo.toml \
 		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
 	git grep -l 'whi_hdk_extensions = {' -- coop_content_sdk/Cargo.toml \
