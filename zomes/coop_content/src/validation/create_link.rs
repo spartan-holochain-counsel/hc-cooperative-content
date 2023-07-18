@@ -16,7 +16,6 @@ use crate::{
     // EntryTypes,
     LinkTypes,
     GroupEntry,
-    ContributionsAnchorEntry,
     ContributionAnchors,
 };
 
@@ -34,6 +33,26 @@ fn validate_content_link_base(
         }
     } else if anchor.author() != &create.author {
         Err(guest_error!(format!("Creating a link based on an auth anchor can only be made by the matching agent ({})", anchor.author() )))?
+    }
+
+    Ok(())
+}
+
+fn validate_anchor_link_base(
+    base: &AnyLinkableHash,
+    target: &AnyLinkableHash,
+    create: &CreateLink,
+) -> ExternResult<()> {
+    let group : GroupEntry = summon_app_entry( base )?;
+
+    if !group.is_admin( &create.author ) {
+        Err(guest_error!("The author of a group auth link must be an admin of the base group".to_string()))?;
+    }
+
+    let anchor : ContributionAnchors = summon_app_entry( target )?;
+
+    if !anchor.is_archive() && !group.is_contributor( anchor.author() ) {
+        Err(guest_error!(format!("Links to a contributions anchor must match a contributor in the group base")))?;
     }
 
     Ok(())
@@ -83,7 +102,7 @@ pub fn validation(
                 Err(err) => invalid!(format!("Invalid tag part 2: {}", err )),
             };
 
-            // Is this check necessary?  Can't we just let group authorities define any pointers
+            // Is this check necessary?  Can't we just let group contributors define any pointers
             // that they want?
             if let (
                 AnyLinkableHashPrimitive::Action(id_addr),
@@ -115,24 +134,15 @@ pub fn validation(
         },
         LinkTypes::GroupAuth => {
             debug!("Checking LinkTypes::GroupAuth base address: {}", base_address );
-            let group : GroupEntry = summon_app_entry( &base_address )?;
 
-            if !group.admins.contains( &create.author ) {
-                invalid!("The author of a group auth link must be an admin of the base group".to_string())
-            }
-
-            let anchor : ContributionsAnchorEntry = summon_app_entry( &target_address )?;
-
-            if !group.contributors().contains( &anchor.1 ) {
-                invalid!(format!("Links to group auth anchors must match an authority in the group revision they are based off of"))
-            }
+            validate_anchor_link_base( &base_address, &target_address, &create )?;
 
             valid!()
         },
         LinkTypes::GroupAuthArchive => {
             debug!("Checking LinkTypes::GroupAuthArchive");
 
-            verify_app_entry_struct::<GroupEntry>( &base_address )?;
+            validate_anchor_link_base( &base_address, &target_address, &create )?;
 
             valid!()
         },

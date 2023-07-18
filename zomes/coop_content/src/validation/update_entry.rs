@@ -23,7 +23,7 @@ pub fn validation(
             debug!("Checking update EntryTypes::Group({:#?})", group );
             let prev_group : GroupEntry = must_get_entry( original_entry_hash )?.content.try_into()?;
 
-            if !prev_group.admins.contains( &update.author ) {
+            if !prev_group.is_admin( &update.author ) {
                 invalid!("Updating a group can only be done by an admin".to_string())
             }
 

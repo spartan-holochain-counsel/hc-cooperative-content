@@ -96,7 +96,7 @@ pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
     for pubkey in group.contributors() {
         let anchor = ContributionsAnchorEntry( action_hash.to_owned(), pubkey );
         let anchor_hash = hash_entry( &anchor )?;
-        debug!("Creating Group Auth anchor ({}): {:#?}", anchor_hash, anchor );
+        debug!("Creating contributions anchor ({}): {:#?}", anchor_hash, anchor );
         create_entry( anchor.to_input() )?;
         create_link( action_hash.to_owned(), anchor_hash, LinkTypes::GroupAuth, () )?;
     }
@@ -216,7 +216,7 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
     for auth_anchor_addr in group_auth_anchors.iter() {
         let anchor : ContributionsAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
         let content_targets = anchor.create_targets()?;
-        debug!("Found {} content links for group authority '{}'", content_targets.len(), anchor.1 );
+        debug!("Found {} content links for group contributor '{}'", content_targets.len(), anchor.1 );
         content_creates.extend( content_targets );
     }
 

@@ -42,7 +42,7 @@ pub fn validation(
             match anchor {
                 ContributionAnchors::Active(entry) => {
                     if *entry.author() != delete.author {
-                        invalid!(format!("A content [update] link based on a group auth anchor can only be deleted by the matching anchor agent ({})", entry.author() ))
+                        invalid!(format!("A content [update] link based on a contributions anchor can only be deleted by the matching anchor agent ({})", entry.author() ))
                     }
                 },
                 ContributionAnchors::Archive(entry) => {
@@ -50,7 +50,7 @@ pub fn validation(
 
                     debug!("Archive anchor group revision: {:#?}", group );
                     if !group.contributors().contains( &delete.author )  {
-                        invalid!(format!("A content [update] link based on a group auth archive anchor can only be deleted by an admin in the anchor's group revision ({})", entry.group() ))
+                        invalid!(format!("A content [update] link based on an archived contributions anchor can only be deleted by an admin in the anchor's group revision ({})", entry.group() ))
                     }
                 },
             };
@@ -70,7 +70,7 @@ pub fn validation(
             debug!("Checking LinkTypes::GroupAuth[Archive] delete");
             // Never allowed because the way to remove members is by updating the group.  Once a
             // GroupAuth link is successfully made, it must be valid forever.
-            invalid!(format!("Once created, group auth anchor links cannot be deleted"))
+            invalid!(format!("Once created, group auth links cannot be deleted"))
         },
     }
 }

@@ -166,14 +166,18 @@ use-rust-whi_hdk:
 #
 # Documentation
 #
+SDK_DOCS		= target/doc/coop_content_sdk/index.html
 COOP_DOCS		= target/doc/coop_content/index.html
-test-docs:
+
+$(SDK_DOCS):		coop_content_sdk/src/**
 	cd coop_content_sdk; cargo test --doc
+	cd zomes; cargo doc
+	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$(SDK_DOCS)\x1b[0m";
+$(COOP_DOCS):		zomes/*/src/**
 	cd zomes; cargo test --doc
-$(COOP_DOCS):		test-docs
 	cd zomes; cargo doc
 	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$(COOP_DOCS)\x1b[0m";
-docs:			$(COOP_DOCS)
+docs:			$(SDK_DOCS) $(COOP_DOCS)
 docs-watch:
 	@inotifywait -r -m -e modify		\
 		--includei '.*\.rs'		\

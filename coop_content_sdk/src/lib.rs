@@ -56,7 +56,7 @@ pub trait CommonFields<'a> {
 /// The input must be a struct with fields matching each common field method.
 ///
 /// #### Example
-/// ```
+/// ```ignore
 /// struct PostEntry {
 ///     pub message: String,
 ///
@@ -118,7 +118,7 @@ impl GroupEntry {
 
     /// Check if the given agent is an admin or member
     pub fn is_contributor(&self, agent: &AgentPubKey) -> bool {
-        // debug!("Checking contributors {:#?} for author {}", group.contributors(), author );
+        debug!("Checking contributors {:#?} for author {}", self.contributors(), agent );
         self.contributors().contains( agent )
     }
 
@@ -170,7 +170,7 @@ pub struct ContributorsDiff {
 //
 // Group Member Anchor Entry
 //
-/// An entry struct (anchor) representing a group authority's personal anchor
+/// An entry struct (anchor) representing a group contributor's personal anchor
 #[hdk_entry_helper]
 #[derive(Clone)]
 pub struct ContributionsAnchorEntry( pub ActionHash, pub AgentPubKey );
@@ -252,7 +252,7 @@ impl ContributionAnchors {
 }
 
 
-/// Indicates the intended group auth anchor type
+/// Indicates the intended contributions anchor type
 ///
 /// Since the variable content is the same for both anchor types, this enum helps declare the
 /// intended type when passing around the group/author anchor values.
@@ -306,7 +306,7 @@ pub struct CreateContributionUpdateLinkInput {
     pub content_next: AnyLinkableHash,
 }
 
-/// Input required for initializing a group auth anchor entry
+/// Input required for initializing a contributions anchor entry
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GroupAuthInput {
     pub group_id: ActionHash,
@@ -352,7 +352,7 @@ impl GroupRef for (ActionHash, ActionHash) {
 /// #### Examples
 ///
 /// ##### Example: Single Field
-/// ```
+/// ```ignore
 /// struct PostEntry {
 ///     pub message: String,
 ///     pub group_ref: (ActionHash, ActionHash),
@@ -361,7 +361,7 @@ impl GroupRef for (ActionHash, ActionHash) {
 /// ```
 ///
 /// ##### Example: Separate Fields
-/// ```
+/// ```ignore
 /// struct PostEntry {
 ///     pub message: String,
 ///
@@ -372,7 +372,7 @@ impl GroupRef for (ActionHash, ActionHash) {
 /// ```
 ///
 /// ##### Example: Separate Struct
-/// ```
+/// ```ignore
 /// struct GroupRef {
 ///     pub id: ActionHash,
 ///     pub rev: ActionHash,
@@ -488,17 +488,23 @@ where
 ///
 /// ##### Example: Basic Usage
 /// ```
-/// let group_id = "uhCkkrVjqWkvcFoq2Aw4LOSe6Yx9OgQLMNG-DiXqtT0nLx8uIM2j7";
-/// let content_addr = "uhCkknDrZjzEgzf8iIQ6aEzbqEYrYBBg1pv_iTNUGAFJovhxOJqu0";
+/// # use coop_content_sdk::*;
+/// # use coop_content_sdk::hdk::prelude::*;
+/// fn example() -> ExternResult<()> {
+///     let group_id = "uhCkkrVjqWkvcFoq2Aw4LOSe6Yx9OgQLMNG-DiXqtT0nLx8uIM2j7";
+///     let content_addr = "uhCkknDrZjzEgzf8iIQ6aEzbqEYrYBBg1pv_iTNUGAFJovhxOJqu0";
 ///
-/// call_local_zome!(
-///     "coop_content_csr",
-///     "create_content_link",
-///     coop_content_sdk::CreateContributionLinkInput {
-///         group_id: ActionHash::try_from(group_id).unwrap(),
-///         content_target: ActionHash::try_from(content_addr).unwrap().into(),
-///     }
-/// )?
+///     call_local_zome!(
+///         "coop_content_csr",
+///         "create_content_link",
+///         coop_content_sdk::CreateContributionLinkInput {
+///             group_id: ActionHash::try_from(group_id).unwrap(),
+///             content_target: ActionHash::try_from(content_addr).unwrap().into(),
+///         }
+///     )?;
+///
+///     Ok(())
+/// }
 /// ```
 #[macro_export]
 macro_rules! call_local_zome {
@@ -527,18 +533,25 @@ macro_rules! call_local_zome {
 ///
 /// ##### Example: Basic Usage
 /// ```
-/// let group_id = "uhCkkrVjqWkvcFoq2Aw4LOSe6Yx9OgQLMNG-DiXqtT0nLx8uIM2j7";
-/// let content_addr = "uhCkknDrZjzEgzf8iIQ6aEzbqEYrYBBg1pv_iTNUGAFJovhxOJqu0";
+/// # use coop_content_sdk::*;
+/// # use coop_content_sdk::hdk::prelude::*;
+/// fn example() -> ExternResult<()> {
+///     let group_id = "uhCkkrVjqWkvcFoq2Aw4LOSe6Yx9OgQLMNG-DiXqtT0nLx8uIM2j7";
+///     let content_addr = "uhCkknDrZjzEgzf8iIQ6aEzbqEYrYBBg1pv_iTNUGAFJovhxOJqu0";
 ///
-/// call_local_zome_decode!(
-///     ActionHash,
-///     "coop_content_csr",
-///     "create_content_link",
-///     coop_content_sdk::CreateContributionLinkInput {
-///         group_id: ActionHash::try_from(group_id).unwrap(),
-///         content_target: ActionHash::try_from(content_addr).unwrap().into(),
-///     }
-/// )?
+///     call_local_zome_decode!(
+///         ActionHash,
+///         "coop_content_csr",
+///         "create_content_link",
+///         coop_content_sdk::CreateContributionLinkInput {
+///             group_id: ActionHash::try_from(group_id).unwrap(),
+///             content_target: ActionHash::try_from(content_addr).unwrap().into(),
+///         }
+///     )?;
+///
+///     Ok(())
+/// }
+///
 /// ```
 #[macro_export]
 macro_rules! call_local_zome_decode {
@@ -585,7 +598,7 @@ where
 ///
 /// #### Examples
 /// All examples assume this setup
-/// ```
+/// ```ignore
 /// #[hdk_entry_helper]
 /// struct PostEntry {
 ///     pub message: String,
@@ -605,7 +618,7 @@ where
 /// ```
 ///
 /// ##### Example: Basic Usage
-/// ```
+/// ```ignore
 /// let link_addr = register_content_to_group!({
 ///     entry: post,
 ///     target: create_addr,
@@ -613,7 +626,7 @@ where
 /// ```
 ///
 /// ##### Example: Custom Zome Name
-/// ```
+/// ```ignore
 /// let link_addr = register_content_to_group!(
 ///     "coop_content_csr_renamed",
 ///     {
@@ -624,7 +637,7 @@ where
 /// ```
 ///
 /// ##### Example: Custom Zome and Function Names
-/// ```
+/// ```ignore
 /// let link_addr = register_content_to_group!(
 ///     "custom_coop_content_csr",
 ///     "register_content_link",
@@ -678,7 +691,7 @@ macro_rules! register_content_to_group {
 ///
 /// #### Examples
 /// All examples assume this setup
-/// ```
+/// ```ignore
 /// #[hdk_entry_helper]
 /// struct PostEntry {
 ///     pub message: String,
@@ -703,7 +716,7 @@ macro_rules! register_content_to_group {
 /// ```
 ///
 /// ##### Example: Basic Usage
-/// ```
+/// ```ignore
 /// let link_addr = register_content_update_to_group!({
 ///     entry: post_updated,
 ///     target: update_addr,
@@ -711,7 +724,7 @@ macro_rules! register_content_to_group {
 /// ```
 ///
 /// ##### Example: Custom Zome Name
-/// ```
+/// ```ignore
 /// let link_addr = register_content_update_to_group!(
 ///     "coop_content_csr_renamed",
 ///     {
@@ -722,7 +735,7 @@ macro_rules! register_content_to_group {
 /// ```
 ///
 /// ##### Example: Custom Zome and Function Names
-/// ```
+/// ```ignore
 /// let link_addr = register_content_update_to_group!(
 ///     "custom_coop_content_csr",
 ///     "register_content_update_link",
@@ -798,13 +811,13 @@ pub struct GetGroupContentMacroInput {
 ///
 /// #### Examples
 /// All examples assume this setup
-/// ```
+/// ```ignore
 /// let group_id = ActionHash::try_from("uhCkkrVjqWkvcFoq2Aw4LOSe6Yx9OgQLMNG-DiXqtT0nLx8uIM2j7").unwrap();
 /// let content_id = ActionHash::try_from("uhCkknDrZjzEgzf8iIQ6aEzbqEYrYBBg1pv_iTNUGAFJovhxOJqu0").unwrap();
 /// ```
 ///
 /// ##### Example: Basic Usage
-/// ```
+/// ```ignore
 /// let latest_addr = get_group_content_latest!({
 ///     group_id: group_id,
 ///     content_id: content_id.into(),
@@ -812,7 +825,7 @@ pub struct GetGroupContentMacroInput {
 /// ```
 ///
 /// ##### Example: Custom Zome Name
-/// ```
+/// ```ignore
 /// let latest_addr = get_group_content_latest!(
 ///     "coop_content_csr_renamed",
 ///     {
@@ -823,7 +836,7 @@ pub struct GetGroupContentMacroInput {
 /// ```
 ///
 /// ##### Example: Custom Zome and Function Names
-/// ```
+/// ```ignore
 /// let latest_addr = get_group_content_latest!(
 ///     "custom_coop_content_csr",
 ///     "get_single_group_content",
@@ -899,19 +912,19 @@ pub struct GetAllGroupContentMacroInput {
 ///
 /// #### Examples
 /// All examples assume this setup
-/// ```
+/// ```ignore
 /// let group_id = ActionHash::try_from("uhCkkrVjqWkvcFoq2Aw4LOSe6Yx9OgQLMNG-DiXqtT0nLx8uIM2j7").unwrap();
 /// ```
 ///
 /// ##### Example: Basic Usage
-/// ```
+/// ```ignore
 /// let link_map = get_all_group_content_latest!({
 ///     group_id: group_id,
 /// })?;
 /// ```
 ///
 /// ##### Example: Custom Zome Name
-/// ```
+/// ```ignore
 /// let link_map = get_all_group_content_latest!(
 ///     "coop_content_csr_renamed",
 ///     {
@@ -921,7 +934,7 @@ pub struct GetAllGroupContentMacroInput {
 /// ```
 ///
 /// ##### Example: Custom Zome and Function Names
-/// ```
+/// ```ignore
 /// let link_map = get_all_group_content_latest!(
 ///     "custom_coop_content_csr",
 ///     "get_all_group_content",
@@ -972,7 +985,7 @@ macro_rules! get_all_group_content_latest {
 ///
 /// #### Examples
 /// All examples assume this setup
-/// ```
+/// ```ignore
 /// let group = GroupEntry {
 ///     admins: vec![ agent_info()?.agent_initial_pubkey ],
 ///     members: vec![],
@@ -984,12 +997,12 @@ macro_rules! get_all_group_content_latest {
 /// ```
 ///
 /// ##### Example: Basic Usage
-/// ```
+/// ```ignore
 /// let create_addr = create_group!( group )?;
 /// ```
 ///
 /// ##### Example: Custom Zome Name
-/// ```
+/// ```ignore
 /// let create_addr = create_group!(
 ///     "coop_content_csr_renamed",
 ///     group
@@ -997,7 +1010,7 @@ macro_rules! get_all_group_content_latest {
 /// ```
 ///
 /// ##### Example: Custom Zome and Function Names
-/// ```
+/// ```ignore
 /// let create_addr = create_group!(
 ///     "custom_coop_content_csr",
 ///     "new_group",
@@ -1043,17 +1056,17 @@ macro_rules! create_group {
 ///
 /// #### Examples
 /// All examples assume this setup
-/// ```
+/// ```ignore
 /// let group_id = ActionHash::try_from("uhCkkrVjqWkvcFoq2Aw4LOSe6Yx9OgQLMNG-DiXqtT0nLx8uIM2j7").unwrap();
 /// ```
 ///
 /// ##### Example: Basic Usage
-/// ```
+/// ```ignore
 /// let group = get_group!( group )?;
 /// ```
 ///
 /// ##### Example: Custom Zome Name
-/// ```
+/// ```ignore
 /// let group = get_group!(
 ///     "coop_content_csr_renamed",
 ///     group
@@ -1061,7 +1074,7 @@ macro_rules! create_group {
 /// ```
 ///
 /// ##### Example: Custom Zome and Function Names
-/// ```
+/// ```ignore
 /// let group = get_group!(
 ///     "custom_coop_content_csr",
 ///     "new_group",
@@ -1107,7 +1120,7 @@ macro_rules! get_group {
 ///
 /// #### Examples
 /// All examples assume this setup
-/// ```
+/// ```ignore
 /// let member_id = AgentPubKey::try_from("uhCAkP5vqve5GTqb0-zcVcPsGUFrmp27SMzEoAX1W3HlxYqYesBcN").unwrap();
 /// let group_update = GroupEntry {
 ///     admins: vec![ agent_info()?.agent_initial_pubkey ],
@@ -1120,7 +1133,7 @@ macro_rules! get_group {
 /// ```
 ///
 /// ##### Example: Basic Usage
-/// ```
+/// ```ignore
 /// let update_addr = update_group!({
 ///     base: create_addr,
 ///     entry: group_update,
@@ -1128,7 +1141,7 @@ macro_rules! get_group {
 /// ```
 ///
 /// ##### Example: Custom Zome Name
-/// ```
+/// ```ignore
 /// let update_addr = update_group!(
 ///     "coop_content_csr_renamed",
 ///     {
@@ -1139,7 +1152,7 @@ macro_rules! get_group {
 /// ```
 ///
 /// ##### Example: Custom Zome and Function Names
-/// ```
+/// ```ignore
 /// let update_addr = update_group!(
 ///     "custom_coop_content_csr",
 ///     "fetch_group",

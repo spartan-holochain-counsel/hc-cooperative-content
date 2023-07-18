@@ -250,14 +250,14 @@ function phase1_checks_tests () {
 	}, "group ID is not the initial action for the group revision" );
     });
 
-    it("should reject auth anchor link because agent (A4) is not a group authority", async function () {
+    it("should reject auth anchor link because agent (A4) is not in the group's contributors", async function () {
 	await expect_reject( async () => {
 	    await clients.alice.call( DNA_NAME, EVIL_ZOME, "invalid_group_auth_link", {
 		"group_id": g1_addr,
 		"group_rev": g1_addr,
 		"anchor_agent": clients.david.cellAgent(),
 	    });
-	}, "group auth anchors must match an authority in the group revision" );
+	}, "contributions anchor must match a contributor in the group base" );
     });
 
     // Dynamic
@@ -270,7 +270,7 @@ function phase1_checks_tests () {
 	}, "group can only be done by an admin" );
     });
 
-    it("should reject content update because agent is not a group authority", async function () {
+    it("should reject content update because agent is not in the group's contributors", async function () {
 	await expect_reject( async () => {
 	    await clients.david.call( DNA_NAME, GOOD_ZOME, "update_content", {
 		"base": c1_addr,
@@ -462,7 +462,7 @@ function phase2_checks_tests () {
 	}, "not authorized to update content managed by group" );
     });
 
-    it("should reject content update because agent (A3) is not an authority in the author group revision", async function () {
+    it("should reject content update because agent (A3) is not a contributor in the author group revision", async function () {
 	await expect_reject( async () => {
 	    await clients.carol.call( DNA_NAME, GOOD_ZOME, "update_content", {
 		"base": c2_addr,
@@ -611,7 +611,7 @@ function phase3_checks_tests () {
 		"group_rev": g1_addr,
 		"anchor_agent": clients.alice.cellAgent(),
 	    });
-	}, "group auth anchor links cannot be deleted" );
+	}, "group auth links cannot be deleted" );
     });
 
     it("should reject content link delete because author did not create the link", async function () {
@@ -623,7 +623,7 @@ function phase3_checks_tests () {
 		},
 		c3_addr,
 	    ]);
-	}, "group auth anchor can only be deleted" );
+	}, "contributions anchor can only be deleted" );
     });
 
     it("should reject content link delete because author is not an admin", async function () {
