@@ -17,6 +17,14 @@ contributors.  It also provides a default way of viewing content; however, group
 Holochain app is essentially just a suggestion because the end-user can ultimately choose how they
 want to read the DHT.
 
+#### What is so complicated about multi-agent authority?
+A simple solution would be to include the list of authorized agents in the entry that they are
+allowed to update.  The complications in the "simple" approach occur when you want to add/remove an
+agent from a collection of content entries.  Each content entry must be updated in order to change
+the list of authorized agents.  Even if the list is moved to its own entry type, the content's
+reference to the agent list would have to be updated.  This project provides a solution that allows
+the agent list to change without forcing the content entries to also be updated.
+
 
 ### Usage
 Implementing Coop Content in a DNA will require that
