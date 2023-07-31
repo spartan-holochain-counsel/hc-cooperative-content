@@ -1,11 +1,11 @@
 
 COMMON_SOURCE_FILES	= ../Makefile ../zomes/Cargo.* ../zomes/*/Cargo.toml ../zomes/*/src/*.rs ../zomes/*/src/*/* \
 				../coop_content_sdk/Cargo.toml ../coop_content_sdk/src/*.rs \
-				Makefile test_types/Cargo.toml test_types/src/*.rs
+				Makefile test_types/Cargo.toml test_types/src/*.rs zomes/Cargo.toml zomes/Cargo.lock
 DNA_SOURCE_FILES	= %/dna.yaml \
-				zomes/Cargo.lock zomes/Cargo.toml zomes/*/Cargo.toml zomes/*/src/*.rs \
+				zomes/*/Cargo.toml zomes/*/src/*.rs \
 				$(COMMON_SOURCE_FILES)
-ZOME_SOURCE_FILES	= zomes/Cargo.lock zomes/%/Cargo.toml zomes/%/src/*.rs \
+ZOME_SOURCE_FILES	= zomes/%/Cargo.toml zomes/%/src/*.rs \
 				$(COMMON_SOURCE_FILES)
 
 # MODE			= production
@@ -21,6 +21,8 @@ else
     $(error Invalid MODE definition '$(MODE)'; expected development/production)
 endif
 
+zomes/Cargo.lock:
+	touch $@
 %.dna:			$(DNA_SOURCE_FILES)
 	rm -f $@
 	@find zomes -maxdepth 1 -type d ! -path zomes -exec make {}.wasm \;

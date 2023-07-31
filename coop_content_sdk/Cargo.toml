@@ -9,7 +9,7 @@ name = "coop_content_sdk"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-rmpv = { version = "1.0.0", features = ["with-serde"] }
+rmpv = { version = "=1.0.0", features = ["with-serde"] }
 serde = "1"
 thiserror = "1"
 whi_hdk_extensions = "0.1"
