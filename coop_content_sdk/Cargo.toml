@@ -3,6 +3,10 @@ name = "hc_coop_content_sdk"
 version = "0.1.0"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
 edition = "2018"
+license = "CAL-1.0"
+repository = "https://github.com/mjbrisebois/hc-cooperative-content"
+description = "Standard development kit for the 'Cooperative Content' Holochain zomes"
+readme = "README.md"
 
 [lib]
 name = "coop_content_sdk"
