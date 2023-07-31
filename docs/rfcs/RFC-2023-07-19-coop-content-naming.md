@@ -53,4 +53,5 @@ rather than other verbiage that would move focus to the process (eg. editing, ma
 
 
 ## External Discussions
-No documented discussion
+
+- Mattermost Discussion - https://chat.holochain.org/holo/pl/nrpprg9hw7bk9yxob9kijd1zgh
