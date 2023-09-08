@@ -179,8 +179,6 @@ docs-watch:
 	@inotifywait -r -m -e modify		\
 		--includei '.*\.rs'		\
 			zomes/			\
-			hdi_extensions/		\
-			hdk_extensions/		\
 			coop_content_sdk	\
 	| while read -r dir event file; do	\
 		echo -e "\x1b[37m$$event $$dir$$file\x1b[0m";\

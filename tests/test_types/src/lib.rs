@@ -1,3 +1,6 @@
+pub use coop_content_sdk::hdi;
+pub use coop_content_sdk::hdi_extensions;
+
 use hdi::prelude::*;
 use coop_content_sdk::group_ref;
 

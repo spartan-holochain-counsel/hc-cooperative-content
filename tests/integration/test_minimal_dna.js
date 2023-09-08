@@ -125,29 +125,6 @@ function basic_tests () {
 }
 
 
-function accesssory_tests () {
-
-    it("should calculate contributions anchor hash", async function () {
-	let anchor_hash			= await clients.carol.call( DNA_NAME, COOP_ZOME, "group_auth_anchor_hash", {
-	    "group_id": g1_addr,
-	    "author": clients.alice.cellAgent(),
-	});
-
-	new EntryHash( anchor_hash );
-    });
-
-    it("should calculate archived contributions anchor hash", async function () {
-	let anchor_hash			= await clients.carol.call( DNA_NAME, COOP_ZOME, "group_auth_archive_anchor_hash", {
-	    "group_id": g1_addr,
-	    "author": clients.alice.cellAgent(),
-	});
-
-	new EntryHash( anchor_hash );
-    });
-
-}
-
-
 function error_tests () {
 }
 
