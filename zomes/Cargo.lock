@@ -811,7 +811,7 @@ dependencies = [
 
 [[package]]
 name = "hc_coop_content_sdk"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "rmpv",
  "serde",
