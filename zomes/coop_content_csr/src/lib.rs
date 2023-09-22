@@ -400,6 +400,63 @@ pub fn delete_group_auth_anchor_content_links(input: (GroupAuthInput, AnyLinkabl
 
 
 #[hdk_extern]
+pub fn get_group_content_evolutions(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
+    match input.full_trace {
+        None | Some(false) => get_group_content_evolutions_shortcuts( input ),
+        Some(true) => get_group_content_evolutions_full_trace( input ),
+    }
+}
+
+#[hdk_extern]
+pub fn get_group_content_evolutions_shortcuts(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
+    debug!("Get group content evolutions: {}", input.group_id );
+    let all_content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( input.group_id )?
+        .into_iter().collect();
+
+    debug!("Looking for {} in: {:#?}", input.content_id, all_content_evolutions );
+    let evolutions = all_content_evolutions.get( &input.content_id.clone().into() )
+        .ok_or(guest_error!(format!("Content ID ({}) is not in group content: {:?}", input.content_id, all_content_evolutions.keys() )))?
+        .to_owned();
+
+    Ok( evolutions )
+}
+
+#[hdk_extern]
+pub fn get_group_content_evolutions_full_trace(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
+    debug!("Get group content evolutions: {}", input.group_id );
+    let base_addr = resolve_action_addr( &input.content_id )?;
+    let latest_addr = follow_evolutions( &input.group_id )?.last().unwrap().to_owned();
+    let record = must_get( &latest_addr )?;
+    let group_rev = record.action_address().to_owned();
+    let group : GroupEntry = record.try_into()?;
+
+    let mut archived_updates : Vec<ActionHash> = vec![];
+    let auth_archive_anchors = GroupEntry::group_auth_archive_anchor_hashes( &group_rev )?;
+
+    debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
+    for auth_archive_addr in auth_archive_anchors.iter() {
+        let anchor : ArchivedContributionsAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
+
+        let archive_updates = anchor.update_targets()?;
+        let update_actions : Vec<ActionHash> = archive_updates.iter()
+            .cloned()
+            .filter_map(|target| target.into_action_hash() )
+            .collect();
+        debug!("Removed {}/{} archive updates because they were not ActionHash targets", archive_updates.len() - update_actions.len(), archive_updates.len() );
+        archived_updates.extend( update_actions );
+    }
+
+    Ok(
+        follow_evolutions_using_authorities_with_exceptions(
+            &base_addr,
+            &group.contributors(),
+            &archived_updates
+        )?.into_iter().map( |hash| hash.into() ).collect()
+    )
+}
+
+
+#[hdk_extern]
 pub fn get_group_content_latest(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
     match input.full_trace {
         None | Some(false) => get_group_content_latest_shortcuts( input ),

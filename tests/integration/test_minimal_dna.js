@@ -122,6 +122,18 @@ function basic_tests () {
 	expect( latest			).to.deep.equal( c1a_addr );
     });
 
+    it("should get evolution history for for a group content", async function () {
+	const evolutions		= (await clients.alice.call( DNA_NAME, COOP_ZOME, "get_group_content_evolutions", {
+	    "group_id": g1_addr,
+	    "content_id": c1_addr,
+	})).map( hash => new EntryHash(hash) );
+	log.debug("Evolutions for C1: %s", json.debug( evolutions ) );
+
+	expect( evolutions[0]		).to.deep.equal( c1_addr );
+	expect( evolutions[1]		).to.deep.equal( c1a_addr );
+	expect( evolutions		).to.have.length( 2 );
+    });
+
 }
 
 
