@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "hc_coop_content_types"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "getrandom",
  "rmpv",
