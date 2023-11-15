@@ -401,6 +401,7 @@ pub fn delete_group_auth_anchor_content_links(input: (GroupAuthInput, AnyLinkabl
 
 #[hdk_extern]
 pub fn get_group_content_evolutions(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
+    debug!("Get group content evolutions: {:?}", input );
     match input.full_trace {
         None | Some(false) => get_group_content_evolutions_shortcuts( input ),
         Some(true) => get_group_content_evolutions_full_trace( input ),
@@ -408,22 +409,8 @@ pub fn get_group_content_evolutions(input: GetGroupContentInput) -> ExternResult
 }
 
 #[hdk_extern]
-pub fn get_group_content_evolutions_shortcuts(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
-    debug!("Get group content evolutions: {}", input.group_id );
-    let all_content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( input.group_id )?
-        .into_iter().collect();
-
-    debug!("Looking for {} in: {:#?}", input.content_id, all_content_evolutions );
-    let evolutions = all_content_evolutions.get( &input.content_id.clone().into() )
-        .ok_or(guest_error!(format!("Content ID ({}) is not in group content: {:?}", input.content_id, all_content_evolutions.keys() )))?
-        .to_owned();
-
-    Ok( evolutions )
-}
-
-#[hdk_extern]
 pub fn get_group_content_evolutions_full_trace(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
-    debug!("Get group content evolutions: {}", input.group_id );
+    debug!("Get group ({}) content evolutions (full-trace): {}", input.group_id, input.content_id );
     let base_addr = resolve_action_addr( &input.content_id )?;
     let latest_addr = follow_evolutions( &input.group_id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
@@ -455,9 +442,24 @@ pub fn get_group_content_evolutions_full_trace(input: GetGroupContentInput) -> E
     )
 }
 
+#[hdk_extern]
+pub fn get_group_content_evolutions_shortcuts(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
+    debug!("Get group ({}) content evolutions (shortcuts): {}", input.group_id, input.content_id );
+    let all_content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( input.group_id )?
+        .into_iter().collect();
+
+    debug!("Looking for {} in: {:#?}", input.content_id, all_content_evolutions );
+    let evolutions = all_content_evolutions.get( &input.content_id.clone().into() )
+        .ok_or(guest_error!(format!("Content ID ({}) is not in group content: {:?}", input.content_id, all_content_evolutions.keys() )))?
+        .to_owned();
+
+    Ok( evolutions )
+}
+
 
 #[hdk_extern]
 pub fn get_group_content_latest(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
+    debug!("Get group content latest: {:?}", input );
     match input.full_trace {
         None | Some(false) => get_group_content_latest_shortcuts( input ),
         Some(true) => get_group_content_latest_full_trace( input ),
@@ -466,48 +468,19 @@ pub fn get_group_content_latest(input: GetGroupContentInput) -> ExternResult<Any
 
 #[hdk_extern]
 pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
-    debug!("Get latest group content: {}", input.group_id );
-    let base_addr = resolve_action_addr( &input.content_id )?;
-    let latest_addr = follow_evolutions( &input.group_id )?.last().unwrap().to_owned();
-    let record = must_get( &latest_addr )?;
-    let group_rev = record.action_address().to_owned();
-    let group : GroupEntry = record.try_into()?;
-
-    let mut archived_updates : Vec<ActionHash> = vec![];
-    let auth_archive_anchors = GroupEntry::group_auth_archive_anchor_hashes( &group_rev )?;
-
-    debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
-    for auth_archive_addr in auth_archive_anchors.iter() {
-        let anchor : ArchivedContributionsAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
-
-        let archive_updates = anchor.update_targets()?;
-        let update_actions : Vec<ActionHash> = archive_updates.iter()
-            .cloned()
-            .filter_map(|target| target.into_action_hash() )
-            .collect();
-        debug!("Removed {}/{} archive updates because they were not ActionHash targets", archive_updates.len() - update_actions.len(), archive_updates.len() );
-        archived_updates.extend( update_actions );
-    }
-
+    debug!("Get group ({}) content latest (full-trace): {}", input.group_id, input.content_id );
     Ok(
-        follow_evolutions_using_authorities_with_exceptions(
-            &base_addr,
-            &group.contributors(),
-            &archived_updates
-        )?.last().unwrap().to_owned().into()
+        get_group_content_evolutions_full_trace( input )?
+            .last().unwrap().to_owned()
     )
 }
 
 
 #[hdk_extern]
 pub fn get_group_content_latest_shortcuts(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
-    let content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( input.group_id )?
-        .into_iter().collect();
-
-    debug!("Looking for {} in: {:#?}", input.content_id, content_evolutions );
+    debug!("Get group ({}) content latest (shortcuts): {}", input.group_id, input.content_id );
     Ok(
-        content_evolutions.get( &input.content_id.clone().into() )
-            .ok_or(guest_error!(format!("Content ID ({}) is not in group content: {:?}", input.content_id, content_evolutions.keys() )))?
+        get_group_content_evolutions_shortcuts( input )?
             .last().unwrap().to_owned()
     )
 }

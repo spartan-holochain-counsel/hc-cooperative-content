@@ -138,12 +138,22 @@ NEW_HDK_VERSION = ""
 PRE_HDI_VERSION = "0.4.0-beta-dev.1"
 NEW_HDI_VERSION = ""
 
-GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ hc_utils
+PRE_HDIE_VERSION = whi_hdi_extensions = "=0.3.0"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.4"
+
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.2"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.4"
+
+GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_sdk/ tests/zomes
 
 update-hdk-version:
-	git grep -l $(PRE_HDK_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDK_VERSION)/$(NEW_HDK_VERSION)/g'
+	git grep -l '$(PRE_HDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDK_VERSION)|$(NEW_HDK_VERSION)|g'
 update-hdi-version:
-	git grep -l $(PRE_HDI_VERSION) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_HDI_VERSION)/$(NEW_HDI_VERSION)/g'
+	git grep -l '$(PRE_HDI_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDI_VERSION)|$(NEW_HDI_VERSION)|g'
+update-hdk-extensions-version:
+	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
+update-hdi-extensions-version:
+	git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
 
 HDIEV	= "0.1"
 HDKEV	= "0.1"

@@ -16,4 +16,4 @@ crate-type = ["cdylib", "rlib"]
 rmpv = { version = "=1.0.0", features = ["with-serde"] }
 serde = "1"
 thiserror = "1"
-whi_hdk_extensions = "0.2"
+whi_hdk_extensions = "0.4"
