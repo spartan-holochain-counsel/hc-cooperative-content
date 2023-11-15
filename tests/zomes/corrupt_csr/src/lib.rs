@@ -1,6 +1,5 @@
-pub use coop_content::hdk;
 pub use coop_content::hdi_extensions;
-pub use coop_content::coop_content_sdk;
+pub use coop_content_sdk::hdk;
 
 use hdk::prelude::*;
 use hdi_extensions::{

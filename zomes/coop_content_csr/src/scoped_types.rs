@@ -6,12 +6,12 @@ use crate::hdi_extensions::{
 };
 use coop_content::{
     LinkTypes,
-    coop_content_sdk::{
-        // Entry Structs
-        GroupEntry,
-        ContributionsAnchorEntry,
-        ArchivedContributionsAnchorEntry,
-    },
+};
+use coop_content_sdk::{
+    // Entry Structs
+    GroupEntry,
+    ContributionsAnchorEntry,
+    ArchivedContributionsAnchorEntry,
 };
 pub use entry_traits::{
     GroupLinks,

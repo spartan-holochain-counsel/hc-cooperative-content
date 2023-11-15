@@ -53,12 +53,20 @@ use-npm-backdrop:
 #
 # Packages
 #
-preview-crate:			test-debug
-	cd coop_content_sdk; cargo publish --dry-run --allow-dirty
-publish-crate:			test-debug .cargo/credentials
-	cd coop_content_sdk; cargo publish
 .cargo/credentials:
 	cp ~/$@ $@
+
+preview-types-crate:		test-debug
+	cd coop_content_types; cargo publish --dry-run --allow-dirty
+	touch coop_content_types/src/lib.rs
+publish-types-crate:		test-debug .cargo/credentials
+	cd coop_content_types; cargo publish
+
+preview-sdk-crate:		test-debug
+	cd coop_content_sdk; cargo publish --dry-run --allow-dirty
+	touch coop_content_sdk/src/lib.rs
+publish-sdk-crate:		test-debug .cargo/credentials
+	cd coop_content_sdk; cargo publish
 
 
 
@@ -132,53 +140,36 @@ clean-files-all:	clean-remove-chaff
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 
-PRE_HDK_VERSION = "0.3.0-beta-dev.2"
-NEW_HDK_VERSION = ""
-
-PRE_HDI_VERSION = "0.4.0-beta-dev.1"
-NEW_HDI_VERSION = ""
-
 PRE_HDIE_VERSION = whi_hdi_extensions = "=0.3.0"
 NEW_HDIE_VERSION = whi_hdi_extensions = "0.4"
 
 PRE_HDKE_VERSION = whi_hdk_extensions = "0.2"
 NEW_HDKE_VERSION = whi_hdk_extensions = "0.4"
 
-GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_sdk/ tests/zomes
+GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ *_sdk/ tests/zomes
 
-update-hdk-version:
-	git grep -l '$(PRE_HDK_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDK_VERSION)|$(NEW_HDK_VERSION)|g'
-update-hdi-version:
-	git grep -l '$(PRE_HDI_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDI_VERSION)|$(NEW_HDI_VERSION)|g'
 update-hdk-extensions-version:
 	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
 update-hdi-extensions-version:
 	git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
 
-HDIEV	= "0.1"
-HDKEV	= "0.1"
-
-use-local-whi_hdk:
-	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- tests/zomes/*/Cargo.toml \
-		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/..\/..\/whi_hdk_extensions" }/g'
-	git grep -l 'whi_hdk_extensions = $(HDKEV)' -- coop_content_sdk/Cargo.toml \
-		| xargs sed -i 's/whi_hdk_extensions = $(HDKEV)/whi_hdk_extensions = { path = "..\/..\/whi_hdk_extensions" }/g'
-use-rust-whi_hdk:
-	git grep -l 'whi_hdk_extensions = {' -- tests/zomes/*/Cargo.toml \
-		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
-	git grep -l 'whi_hdk_extensions = {' -- coop_content_sdk/Cargo.toml \
-		| xargs sed -i 's/whi_hdk_extensions = { path = "..\/..\/whi_hdk_extensions" }/whi_hdk_extensions = $(HDKEV)/g'
-
 
 #
 # Documentation
 #
+TYPES_DOCS		= target/doc/coop_content_types/index.html
 SDK_DOCS		= target/doc/coop_content_sdk/index.html
 COOP_DOCS		= target/doc/coop_content/index.html
 
+$(TYPES_DOCS):		coop_content_types/src/**
+	cd coop_content_types; cargo test --doc
+	cd zomes; cargo doc
+	touch coop_content_types/src/lib.rs
+	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$(TYPES_DOCS)\x1b[0m";
 $(SDK_DOCS):		coop_content_sdk/src/**
 	cd coop_content_sdk; cargo test --doc
 	cd zomes; cargo doc
+	touch coop_content_sdk/src/lib.rs
 	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$(SDK_DOCS)\x1b[0m";
 $(COOP_DOCS):		zomes/*/src/**
 	cd zomes; cargo test --doc

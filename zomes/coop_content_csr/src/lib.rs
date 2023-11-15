@@ -1,10 +1,9 @@
 mod scoped_types;
 
 pub use coop_content::hdi;
-pub use coop_content::hdk;
 pub use coop_content::hdi_extensions;
-pub use coop_content::hdk_extensions;
-pub use coop_content::holo_hash;
+pub use coop_content_sdk::hdk;
+pub use coop_content_sdk::hdk_extensions;
 
 use std::collections::HashMap;
 use lazy_static::lazy_static;
@@ -30,20 +29,19 @@ use coop_content::{
     EntryTypes,
     EntryTypesUnit,
     LinkTypes,
-    coop_content_sdk::{
-        // Entry Structs
-        GroupEntry,
-        ContributionsAnchorEntry,
-        ArchivedContributionsAnchorEntry,
-        // Input Structs
-        ContributionAnchorTypes,
-        GroupAuthInput,
-        GetAllGroupContentInput,
-        GetGroupContentInput,
-        CreateContributionLinkInput,
-        CreateContributionUpdateLinkInput,
-    },
-
+};
+use coop_content_sdk::{
+    // Entry Structs
+    GroupEntry,
+    ContributionsAnchorEntry,
+    ArchivedContributionsAnchorEntry,
+    // Input Structs
+    ContributionAnchorTypes,
+    GroupAuthInput,
+    GetAllGroupContentInput,
+    GetGroupContentInput,
+    CreateContributionLinkInput,
+    CreateContributionUpdateLinkInput,
 };
 use scoped_types::entry_traits::*;
 

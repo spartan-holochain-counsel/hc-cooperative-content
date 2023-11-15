@@ -4,15 +4,16 @@ mod delete_entry;
 mod create_link;
 mod delete_link;
 
-use crate::hdk::prelude::hdi;
-use crate::hdi::prelude::*;
-use crate::hdi_extensions::{
-    // Macros
-    valid, invalid,
-};
 use crate::{
+    hdi,
+    hdi_extensions,
     EntryTypes,
     LinkTypes,
+};
+use hdi::prelude::*;
+use hdi_extensions::{
+    // Macros
+    valid, invalid,
 };
 
 

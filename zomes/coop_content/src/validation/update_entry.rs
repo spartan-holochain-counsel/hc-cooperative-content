@@ -1,16 +1,15 @@
-use crate::hdk::prelude::{
-    hdi,
-    debug,
-};
-use crate::hdi::prelude::*;
-use crate::hdi_extensions::{
-    // Macros
-    valid, invalid,
-};
 use crate::{
+    hdi,
+    hdi_extensions,
     EntryTypes,
     GroupEntry,
 };
+use hdi::prelude::*;
+use hdi_extensions::{
+    // Macros
+    valid, invalid,
+};
+
 
 pub fn validation(
     app_entry: EntryTypes,
@@ -20,7 +19,6 @@ pub fn validation(
 ) -> ExternResult<ValidateCallbackResult> {
     match app_entry {
         EntryTypes::Group(group) => {
-            debug!("Checking update EntryTypes::Group({:#?})", group );
             let prev_group : GroupEntry = must_get_entry( original_entry_hash )?.content.try_into()?;
 
             if !prev_group.is_admin( &update.author ) {

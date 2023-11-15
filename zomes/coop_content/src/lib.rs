@@ -1,16 +1,13 @@
 mod validation;
 
-pub use coop_content_sdk;
-pub use coop_content_sdk::hdi;
-pub use coop_content_sdk::hdk;
-pub use coop_content_sdk::hdi_extensions;
-pub use coop_content_sdk::hdk_extensions;
-pub use coop_content_sdk::holo_hash;
+pub use coop_content_types;
+pub use coop_content_types::hdi;
+pub use coop_content_types::hdi_extensions;
 
 use serde::{
     Deserialize, Deserializer,
 };
-use coop_content_sdk::*;
+use coop_content_types::*;
 use hdi::prelude::*;
 use hdi_extensions::{
     guest_error,

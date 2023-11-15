@@ -1,10 +1,13 @@
-use crate::hdk::prelude::{
-    hdi, holo_hash,
-    debug,
+use crate::{
+    hdi,
+    hdi_extensions,
+    holo_hash,
+    LinkTypes,
+    GroupEntry,
+    ContributionAnchors,
 };
-use crate::hdi::prelude::*;
-use holo_hash::AnyLinkableHashPrimitive;
-use crate::hdi_extensions::{
+use hdi::prelude::*;
+use hdi_extensions::{
     trace_origin_root,
     summon_app_entry,
     verify_app_entry_struct,
@@ -12,12 +15,7 @@ use crate::hdi_extensions::{
     // Macros
     valid, invalid, guest_error,
 };
-use crate::{
-    // EntryTypes,
-    LinkTypes,
-    GroupEntry,
-    ContributionAnchors,
-};
+use holo_hash::AnyLinkableHashPrimitive;
 
 
 fn validate_content_link_base(
@@ -68,15 +66,11 @@ pub fn validation(
 ) -> ExternResult<ValidateCallbackResult> {
     match link_type {
         LinkTypes::Contribution => {
-            debug!("Checking LinkTypes::Contribution base address: {}", base_address );
-
             validate_content_link_base( &base_address, &create )?;
 
             valid!()
         },
         LinkTypes::ContributionUpdate => {
-            debug!("Checking LinkTypes::ContributionUpdate");
-
             validate_content_link_base( &base_address, &create )?;
 
             let tag_str = match String::from_utf8( tag.into_inner() ) {
@@ -116,7 +110,6 @@ pub fn validation(
             valid!()
         },
         LinkTypes::Group => {
-            debug!("Checking LinkTypes::Group");
             // Group base should be an AgentPubKey
             let agent_pubkey = match base_address.clone().into_agent_pub_key() {
                 Some(hash) => hash,
@@ -133,15 +126,11 @@ pub fn validation(
             valid!()
         },
         LinkTypes::GroupAuth => {
-            debug!("Checking LinkTypes::GroupAuth base address: {}", base_address );
-
             validate_anchor_link_base( &base_address, &target_address, &create )?;
 
             valid!()
         },
         LinkTypes::GroupAuthArchive => {
-            debug!("Checking LinkTypes::GroupAuthArchive");
-
             validate_anchor_link_base( &base_address, &target_address, &create )?;
 
             valid!()
