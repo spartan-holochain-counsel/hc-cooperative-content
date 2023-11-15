@@ -61,12 +61,14 @@ preview-types-crate:		test-debug
 	touch coop_content_types/src/lib.rs
 publish-types-crate:		test-debug .cargo/credentials
 	cd coop_content_types; cargo publish
+	touch coop_content_types/src/lib.rs
 
 preview-sdk-crate:		test-debug
 	cd coop_content_sdk; cargo publish --dry-run --allow-dirty
 	touch coop_content_sdk/src/lib.rs
 publish-sdk-crate:		test-debug .cargo/credentials
 	cd coop_content_sdk; cargo publish
+	touch coop_content_sdk/src/lib.rs
 
 
 

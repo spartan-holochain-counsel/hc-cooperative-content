@@ -29,14 +29,14 @@ use coop_content::{
     EntryTypes,
     EntryTypesUnit,
     LinkTypes,
-};
-use coop_content_sdk::{
     // Entry Structs
     GroupEntry,
     ContributionsAnchorEntry,
     ArchivedContributionsAnchorEntry,
-    // Input Structs
     ContributionAnchorTypes,
+};
+use coop_content_sdk::{
+    // Input Structs
     GroupAuthInput,
     GetAllGroupContentInput,
     GetGroupContentInput,

@@ -3,11 +3,11 @@ mod validation;
 pub use coop_content_types;
 pub use coop_content_types::hdi;
 pub use coop_content_types::hdi_extensions;
+pub use coop_content_types::*;
 
 use serde::{
     Deserialize, Deserializer,
 };
-use coop_content_types::*;
 use hdi::prelude::*;
 use hdi_extensions::{
     guest_error,
