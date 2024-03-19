@@ -6,8 +6,8 @@ pub use hdk_extensions;
 pub use coop_content_types;
 pub use coop_content_types::*;
 
-use hdi::prelude::*;
 use hdi_extensions::trace_origin_root;
+use hdk::prelude::*;
 use holo_hash::{
     AgentPubKey, ActionHash, AnyLinkableHash,
 };
@@ -20,6 +20,29 @@ use holo_hash::{
 ///
 /// The key is the address that was evolved from and the value is the address of what it evolved to
 pub type LinkPointerMap = Vec<(AnyLinkableHash, AnyLinkableHash)>;
+
+
+pub fn create_link_input<B,LT,T>(
+    base: &B,
+    link_type: &LT,
+    tag_input: &Option<T>
+) -> ExternResult<GetLinksInput>
+where
+    B: Into<AnyLinkableHash> + Clone,
+    LT: LinkTypeFilterExt + Clone,
+    T: Into<LinkTag> + Clone,
+{
+    let mut link_input_builder = GetLinksInputBuilder::try_new(
+        base.to_owned(),
+        link_type.to_owned(),
+    )?;
+
+    if let Some(tag_prefix) = tag_input.to_owned() {
+        link_input_builder = link_input_builder.tag_prefix( tag_prefix.into() );
+    }
+
+    Ok( link_input_builder.build() )
+}
 
 
 

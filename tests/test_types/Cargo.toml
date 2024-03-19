@@ -10,5 +10,4 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 hc_coop_content_sdk = { path = "../../coop_content_sdk" }
-# hdi = "=0.3.1"
 serde = "1"

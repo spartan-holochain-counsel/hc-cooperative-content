@@ -56,17 +56,21 @@ use-npm-backdrop:
 .cargo/credentials:
 	cp ~/$@ $@
 
-preview-types-crate:		test-debug
+preview-types-crate:
+	DEBUG_LEVEL=debug make -s test
 	cd coop_content_types; cargo publish --dry-run --allow-dirty
 	touch coop_content_types/src/lib.rs
-publish-types-crate:		test-debug .cargo/credentials
+publish-types-crate:		.cargo/credentials
+	DEBUG_LEVEL=debug make -s test
 	cd coop_content_types; cargo publish
 	touch coop_content_types/src/lib.rs
 
-preview-sdk-crate:		test-debug
+preview-sdk-crate:
+	DEBUG_LEVEL=debug make -s test
 	cd coop_content_sdk; cargo publish --dry-run --allow-dirty
 	touch coop_content_sdk/src/lib.rs
-publish-sdk-crate:		test-debug .cargo/credentials
+publish-sdk-crate:		.cargo/credentials
+	DEBUG_LEVEL=debug make -s test
 	cd coop_content_sdk; cargo publish
 	touch coop_content_sdk/src/lib.rs
 
@@ -75,6 +79,10 @@ publish-sdk-crate:		test-debug .cargo/credentials
 #
 # Testing
 #
+DEBUG_LEVEL	       ?= warn
+TEST_ENV_VARS		= LOG_LEVEL=$(DEBUG_LEVEL)
+MOCHA_OPTS		= -n enable-source-maps
+
 reset:
 	rm -f zomes/*.wasm
 	rm -f tests/*.dna
@@ -83,23 +91,20 @@ tests/%.dna:			build FORCE
 	cd tests; make $*.dna
 test-setup:			tests/node_modules
 
-test:				test-unit test-integration
-test-debug:			test-unit test-integration-debug
+test:
+	make -s test-unit
+	make -s test-integration
 
 test-unit:			test-unit-coop_content
 test-unit-%:
 	cd zomes;		RUST_BACKTRACE=1 cargo test $* -- --nocapture
 
-test-integration:		test-setup	\
-				test-general	\
-				test-minimal	\
-				test-external	\
-				test-model
-test-integration-debug:		test-setup		\
-				test-general-debug	\
-				test-minimal-debug	\
-				test-external-debug	\
-				test-model-debug
+test-integration:
+	make -s test-setup
+	make -s test-general
+	make -s test-minimal
+	make -s test-external
+	make -s test-model
 
 GENERAL_DNA			= tests/general_dna.dna
 MINIMAL_DNA			= tests/minimal_dna.dna
@@ -107,24 +112,13 @@ MODEL_DNA			= tests/model_dna.dna
 TEST_DNAS			= $(GENERAL_DNA) $(MINIMAL_DNA) $(MODEL_DNA)
 
 test-general:			test-setup build $(GENERAL_DNA)
-	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_general_dna.js
-test-general-debug:		test-setup build $(GENERAL_DNA)
-	cd tests; RUST_LOG=info LOG_LEVEL=trace npx mocha integration/test_general_dna.js
-
+	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) integration/test_general_dna.js
 test-minimal:			test-setup build $(MINIMAL_DNA)
-	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_minimal_dna.js
-test-minimal-debug:		test-setup build $(MINIMAL_DNA)
-	cd tests; RUST_LOG=info LOG_LEVEL=trace npx mocha integration/test_minimal_dna.js
-
+	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) integration/test_minimal_dna.js
 test-external:			test-setup build $(MINIMAL_DNA)
-	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_minimal_external_pointers.js
-test-external-debug:		test-setup build $(MINIMAL_DNA)
-	cd tests; RUST_LOG=info LOG_LEVEL=trace npx mocha integration/test_minimal_external_pointers.js
-
+	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) integration/test_minimal_external_pointers.js
 test-model:			test-setup build $(TEST_DNAS)
-	cd tests; RUST_LOG=none LOG_LEVEL=fatal npx mocha integration/test_model_dna.js
-test-model-debug:		test-setup build $(TEST_DNAS)
-	cd tests; RUST_LOG=info LOG_LEVEL=trace npx mocha integration/test_model_dna.js
+	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) integration/test_model_dna.js
 
 
 
@@ -142,11 +136,11 @@ clean-files-all:	clean-remove-chaff
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 
-PRE_HDIE_VERSION = whi_hdi_extensions = "=0.3.0"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.4"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.4.2"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.6"
 
-PRE_HDKE_VERSION = whi_hdk_extensions = "0.2"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.4"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.4"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.6"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ *_sdk/ tests/zomes
 
@@ -154,6 +148,9 @@ update-hdk-extensions-version:
 	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
 update-hdi-extensions-version:
 	git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
+reset-locks:
+	rm -f zomes/Cargo.lock
+	rm -f tests/zomes/Cargo.lock
 
 
 #

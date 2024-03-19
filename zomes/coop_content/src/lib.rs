@@ -18,17 +18,17 @@ use hdi_extensions::{
 
 
 /// The entry types defined for this `coop_content` integrity zome
-#[hdk_entry_defs]
+#[hdk_entry_types]
 #[unit_enum(EntryTypesUnit)]
 pub enum EntryTypes {
-    #[entry_def]
+    #[entry_type]
     Group(GroupEntry),
 
     // Anchors
-    #[entry_def]
+    #[entry_type]
     ContributionsAnchor(ContributionsAnchorEntry),
 
-    #[entry_def]
+    #[entry_type]
     ArchivedContributionsAnchor(ArchivedContributionsAnchorEntry),
 }
 

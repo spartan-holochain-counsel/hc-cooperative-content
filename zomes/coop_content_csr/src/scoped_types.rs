@@ -8,6 +8,8 @@ use coop_content::{
     LinkTypes,
 };
 use coop_content_sdk::{
+    create_link_input,
+
     // Entry Structs
     GroupEntry,
     ContributionsAnchorEntry,
@@ -23,7 +25,13 @@ pub use entry_traits::{
 
 impl GroupLinks for GroupEntry {
     fn group_auth_anchor_hashes(base: &ActionHash) -> ExternResult<Vec<EntryHash>> {
-        let links = get_links( base.to_owned(), LinkTypes::GroupAuth, None )?;
+        let links = get_links(
+            create_link_input(
+                base,
+                &LinkTypes::GroupAuth,
+                &None::<()>,
+            )?
+        )?;
 
         Ok(
             links.into_iter()
@@ -38,7 +46,13 @@ impl GroupLinks for GroupEntry {
     }
 
     fn group_auth_archive_anchor_hashes(base: &ActionHash) -> ExternResult<Vec<EntryHash>> {
-        let links = get_links( base.to_owned(), LinkTypes::GroupAuthArchive, None )?;
+        let links = get_links(
+            create_link_input(
+                base,
+                &LinkTypes::GroupAuthArchive,
+                &None::<()>,
+            )?
+        )?;
 
         Ok(
             links.into_iter()
@@ -61,7 +75,13 @@ impl ContributionsLinks for ContributionsAnchorEntry {
     fn create_targets(&self) -> ExternResult<Vec<AnyLinkableHash>> {
         let base = hash_entry( self )?;
         Ok(
-            get_links( base, LinkTypes::Contribution, None )?
+            get_links(
+                create_link_input(
+                    &base,
+                    &LinkTypes::Contribution,
+                    &None::<()>,
+                )?
+            )?
                 .into_iter()
                 .map(|link| link.target )
                 .collect()
@@ -69,7 +89,13 @@ impl ContributionsLinks for ContributionsAnchorEntry {
     }
 
     fn update_links(&self) -> ExternResult<Vec<Link>> {
-        get_links( self.base_hash()?, LinkTypes::ContributionUpdate, None )
+        get_links(
+            create_link_input(
+                &self.base_hash()?,
+                &LinkTypes::ContributionUpdate,
+                &None::<()>,
+            )?
+        )
     }
 
     fn update_targets(&self) -> ExternResult<Vec<AnyLinkableHash>> {
@@ -109,7 +135,13 @@ impl ArchivedContributionsLinks for ArchivedContributionsAnchorEntry {
     fn create_targets(&self) -> ExternResult<Vec<AnyLinkableHash>> {
         let base = self.base_hash()?;
         Ok(
-            get_links( base, LinkTypes::Contribution, None )?
+            get_links(
+                create_link_input(
+                    &base,
+                    &LinkTypes::Contribution,
+                    &None::<()>,
+                )?
+            )?
                 .into_iter()
                 .map(|link| link.target )
                 .collect()
@@ -117,7 +149,13 @@ impl ArchivedContributionsLinks for ArchivedContributionsAnchorEntry {
     }
 
     fn update_links(&self) -> ExternResult<Vec<Link>> {
-        get_links( self.base_hash()?, LinkTypes::ContributionUpdate, None )
+        get_links(
+            create_link_input(
+                &self.base_hash()?,
+                &LinkTypes::ContributionUpdate,
+                &None::<()>,
+            )?
+        )
     }
 
     fn update_targets(&self) -> ExternResult<Vec<AnyLinkableHash>> {

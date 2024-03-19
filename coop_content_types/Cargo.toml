@@ -15,7 +15,4 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 rmpv = { version = "1", features = ["with-serde"] }
 serde = "1"
-whi_hdi_extensions = "0.4.2"
-
-# temporary fix for compile error in
-getrandom = { version = "=0.2.7", features = ["custom"] }
+whi_hdi_extensions = "0.6"

@@ -1,5 +1,5 @@
 import { AgentPubKey, HoloHash,
-	 ActionHash, EntryHash }	from '@whi/holo-hash';
+	 ActionHash, EntryHash }	from '@spartan-hc/holo-hash';
 import {
     OptionType, VecType, MapType,
 }					from '@whi/into-struct';

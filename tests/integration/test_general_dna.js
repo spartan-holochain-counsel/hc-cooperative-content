@@ -9,9 +9,12 @@ import { faker }			from '@faker-js/faker';
 import msgpack				from '@msgpack/msgpack';
 import json				from '@whi/json';
 import { AgentPubKey, HoloHash,
-	 ActionHash, EntryHash }	from '@whi/holo-hash';
-import HolochainBackdrop		from '@whi/holochain-backdrop';
+	 ActionHash, EntryHash }	from '@spartan-hc/holo-hash';
+import HolochainBackdrop		from '@spartan-hc/holochain-backdrop';
 const { Holochain }			= HolochainBackdrop;
+import {
+    AppInterfaceClient,
+}					from '@spartan-hc/app-interface-client';
 import {
     intoStruct,
     OptionType, VecType, MapType,
@@ -35,13 +38,16 @@ const __filename			= new URL(import.meta.url).pathname;
 const __dirname				= path.dirname( __filename );
 const TEST_DNA_PATH			= path.join( __dirname, "../general_dna.dna" );
 
-const clients				= {};
 const DNA_NAME				= "test_dna";
 
 const GEN_ZOME				= "general_csr";
 const COOP_ZOME				= "coop_content_csr";
 
 
+let app_port;
+let client;
+let alice_client;
+let bobby_client;
 let group, g1_addr;
 
 
@@ -49,16 +55,16 @@ function basic_tests () {
 
     it("should create group via alice (A1)", async function () {
 	const group_input		= createGroupInput(
-	    [ clients.alice.cellAgent() ],
-	    clients.bobby.cellAgent(),
+	    [ alice_client.agent_id ],
+	    bobby_client.agent_id,
 	);
-	g1_addr				= await clients.alice.call( DNA_NAME, COOP_ZOME, "create_group", group_input );
+	g1_addr				= await alice_client.call( DNA_NAME, COOP_ZOME, "create_group", group_input );
 	log.debug("Group ID: %s", g1_addr );
 
 	expect( g1_addr		).to.be.a("Uint8Array");
 	expect( g1_addr		).to.have.length( 39 );
 
-	group				= intoStruct( await clients.alice.call( DNA_NAME, COOP_ZOME, "get_group", g1_addr ), GroupStruct );
+	group				= intoStruct( await alice_client.call( DNA_NAME, COOP_ZOME, "get_group", g1_addr ), GroupStruct );
 	log.debug( json.debug( group ) );
     });
 
@@ -68,14 +74,14 @@ function basic_tests () {
 describe("General DNA", function () {
     const holochain			= new Holochain({
 	"timeout": 60_000,
-	"default_stdout_loggers": process.env.LOG_LEVEL === "trace",
+	"default_stdout_loggers": log.level_rank > 3,
     });
 
     before(async function () {
 	this.timeout( 300_000 );
 
-	const actors			= await holochain.backdrop({
-	    "test_happ": {
+	await holochain.backdrop({
+	    "test": {
 		[DNA_NAME]:		TEST_DNA_PATH,
 	    },
 	}, {
@@ -85,16 +91,18 @@ describe("General DNA", function () {
 	    ],
 	});
 
-	for ( let name in actors ) {
-	    for ( let app_prefix in actors[ name ] ) {
-		log.info("Upgrade client for %s => %s", name, app_prefix );
-		const client		= clients[ name ]	= actors[ name ][ app_prefix ].client;
-	    }
-	}
+	app_port			= await holochain.appPorts()[0];
+
+	client				= new AppInterfaceClient( app_port, {
+	    "logging": process.env.LOG_LEVEL || "fatal",
+	});
+
+	alice_client			= await client.app( "test-alice" );
+	bobby_client			= await client.app( "test-bobby" );
 
 	// Must call whoami on each cell to ensure that init has finished.
 	{
-	    let whoami			= await clients.alice.call( DNA_NAME, GEN_ZOME, "whoami", null, 300_000 );
+	    let whoami			= await alice_client.call( DNA_NAME, GEN_ZOME, "whoami", null, 300_000 );
 	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
 	}
     });

@@ -71,7 +71,12 @@ pub fn invalid_group_auth_link(input: InvalidContributionsInput) -> ExternResult
 pub fn delete_group_auth_link(input: InvalidContributionsInput) -> ExternResult<()> {
     let anchor = ContributionsAnchorEntry( input.group_id, input.anchor_agent );
     let anchor_hash = hash_entry( &anchor )?;
-    let links = get_links( input.group_rev.clone(), LinkTypes::GroupAuth, None )?;
+    let links = get_links(
+        GetLinksInputBuilder::try_new(
+            input.group_rev.clone(),
+            LinkTypes::GroupAuth,
+        )?.build()
+    )?;
 
     for link in links {
         if link.target == anchor_hash.clone().into() {

@@ -36,6 +36,8 @@ use coop_content::{
     ContributionAnchorTypes,
 };
 use coop_content_sdk::{
+    create_link_input,
+
     // Input Structs
     GroupAuthInput,
     GetAllGroupContentInput,
@@ -114,7 +116,13 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionH
 
     let action_hash = update_entry( input.base.to_owned(), input.entry.to_input() )?;
 
-    let archive_links = get_links( input.base, LinkTypes::GroupAuthArchive, None )?;
+    let archive_links = get_links(
+        create_link_input(
+            &input.base,
+            &LinkTypes::GroupAuthArchive,
+            &None::<()>,
+        )?
+    )?;
     for link in archive_links {
         create_link( action_hash.to_owned(), link.target, LinkTypes::GroupAuthArchive, link.tag )?;
     }
@@ -129,8 +137,20 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionH
         create_if_not_exists( &archive_anchor )?;
         create_link( action_hash.to_owned(), archive_anchor_hash.to_owned(), LinkTypes::GroupAuthArchive, () )?;
 
-        let creates = get_links( anchor_hash.to_owned(), LinkTypes::Contribution, None )?;
-        let updates = get_links( anchor_hash.to_owned(), LinkTypes::ContributionUpdate, None )?;
+        let creates = get_links(
+            create_link_input(
+                &anchor_hash,
+                &LinkTypes::Contribution,
+                &None::<()>,
+            )?
+        )?;
+        let updates = get_links(
+            create_link_input(
+                &anchor_hash,
+                &LinkTypes::ContributionUpdate,
+                &None::<()>,
+            )?
+        )?;
 
         debug!("Copying {} creates for auth archive: {}", creates.len(), pubkey );
         for link in creates {
@@ -383,7 +403,13 @@ pub fn delete_group_auth_anchor_content_links(input: (GroupAuthInput, AnyLinkabl
         LinkTypes::Contribution,
         LinkTypes::ContributionUpdate,
     ];
-    let links = get_links( base, link_types, None )?;
+    let links = get_links(
+        create_link_input(
+            &base,
+            &link_types,
+            &None::<()>,
+        )?
+    )?;
     let mut deleted = vec![];
 
     for link in links {
@@ -491,7 +517,13 @@ pub fn get_group_content_latest_shortcuts(input: GetGroupContentInput) -> Extern
 #[hdk_extern]
 pub fn delete_matching_links(input: GetLinksInput<LinkTypes>) -> ExternResult<Vec<ActionHash>> {
     debug!("GetLinksInput: {:#?}", input );
-    let links = get_links( input.base, input.link_type_filter, input.tag )?;
+    let links = get_links(
+        create_link_input(
+            &input.base,
+            &input.link_type_filter,
+            &input.tag,
+        )?
+    )?;
     let mut deleted = vec![];
 
     for link in links {
