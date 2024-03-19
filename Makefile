@@ -42,11 +42,11 @@ zomes/$(TARGET_DIR)/%.wasm:	$(SOURCE_FILES)
 	@touch $@ # Cargo must have a cache somewhere because it doesn't update the file time
 
 use-local-backdrop:
-	cd tests; npm uninstall @whi/holochain-backdrop
+	cd tests; npm uninstall @spartan-hc/holochain-backdrop
 	cd tests; npm install --save-dev ../../node-holochain-backdrop/
 use-npm-backdrop:
-	cd tests; npm uninstall @whi/holochain-backdrop
-	cd tests; npm install --save-dev @whi/holochain-backdrop
+	cd tests; npm uninstall @spartan-hc/holochain-backdrop
+	cd tests; npm install --save-dev @spartan-hc/holochain-backdrop
 
 
 

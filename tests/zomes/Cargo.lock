@@ -846,7 +846,7 @@ checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 
 [[package]]
 name = "hc_coop_content_sdk"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "hc_coop_content_types",
  "serde",
@@ -855,7 +855,9 @@ dependencies = [
 
 [[package]]
 name = "hc_coop_content_types"
-version = "0.1.0"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20a87a54700ce808b2ce767dad007be14f25e0cc6e4216783d5b00dc730618a6"
 dependencies = [
  "rmpv",
  "serde",
