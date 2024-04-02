@@ -146,14 +146,14 @@ impl GroupRef for (ActionHash, ActionHash) {
 #[macro_export]
 macro_rules! group_ref {
     ( $type:ident, $($ref:tt).* ) => {
-        impl coop_content_sdk::GroupRef for $type {
+        impl $crate::GroupRef for $type {
             fn group_ref(&self) -> (ActionHash, ActionHash) {
                 self$(.$ref)*.to_owned()
             }
         }
     };
     ( $type:ident, $($id:tt).*, $($rev:tt).* ) => {
-        impl coop_content_sdk::GroupRef for $type {
+        impl $crate::GroupRef for $type {
             fn group_ref(&self) -> (ActionHash, ActionHash) {
                 (
                     self$(.$id)*.to_owned(),
@@ -269,8 +269,8 @@ where
 macro_rules! call_local_zome {
     ( $zome:literal, $fn:literal, $($input:tt)+ ) => {
         {
-            use coop_content_sdk::hdk;
-            use coop_content_sdk::hdi_extensions::guest_error;
+            use $crate::hdk;
+            use $crate::hdi_extensions::guest_error;
 
             match hdk::prelude::call(
                 hdk::prelude::CallTargetCell::Local,
@@ -315,12 +315,12 @@ macro_rules! call_local_zome {
 #[macro_export]
 macro_rules! call_local_zome_decode {
     ( $zome:literal, $fn:literal, $($input:tt)+ ) => {
-        coop_content_sdk::call_local_zome!( $zome, $fn, $($input)+ )?
+        $crate::call_local_zome!( $zome, $fn, $($input)+ )?
             .decode()
             .map_err(|err| hdk::prelude::wasm_error!(hdk::prelude::WasmErrorInner::from(err)) )
     };
     ( $into_type:ident, $zome:literal, $fn:literal, $($input:tt)+ ) => {
-        coop_content_sdk::call_local_zome!( $zome, $fn, $($input)+ )?
+        $crate::call_local_zome!( $zome, $fn, $($input)+ )?
             .decode::<$into_type>()
             .map_err(|err| hdk::prelude::wasm_error!(hdk::prelude::WasmErrorInner::from(err)) )
     };
@@ -410,14 +410,14 @@ where
 macro_rules! register_content_to_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_sdk::GroupRef;
-            let input = coop_content_sdk::RegisterContributionMacroInput $($def)*;
+            use $crate::GroupRef;
+            let input = $crate::RegisterContributionMacroInput $($def)*;
 
-            coop_content_sdk::call_local_zome_decode!(
+            $crate::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
-                coop_content_sdk::CreateContributionLinkInput {
+                $crate::CreateContributionLinkInput {
                     group_id: input.entry.group_ref().0,
                     content_target: input.target.clone().into(),
                 }
@@ -425,10 +425,10 @@ macro_rules! register_content_to_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_sdk::register_content_to_group!( $zome, "create_content_link", $($def)* )
+        $crate::register_content_to_group!( $zome, "create_content_link", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_sdk::register_content_to_group!( "coop_content_csr", $($def)* )
+        $crate::register_content_to_group!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -508,12 +508,12 @@ macro_rules! register_content_to_group {
 macro_rules! register_content_update_to_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_sdk::hdi_extensions::{
+            use $crate::hdi_extensions::{
                 trace_origin, guest_error,
             };
-            use coop_content_sdk::GroupRef;
+            use $crate::GroupRef;
 
-            let input = coop_content_sdk::RegisterContributionMacroInput $($def)*;
+            let input = $crate::RegisterContributionMacroInput $($def)*;
             let history = trace_origin( &input.target )?;
 
             if history.len() < 2 {
@@ -523,11 +523,11 @@ macro_rules! register_content_update_to_group {
             let content_id = &history[ history.len() - 1 ].0;
             let content_prev_rev = &history[1].0;
 
-            coop_content_sdk::call_local_zome_decode!(
+            $crate::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
-                coop_content_sdk::CreateContributionUpdateLinkInput {
+                $crate::CreateContributionUpdateLinkInput {
                     group_id: input.entry.group_ref().0,
                     content_id: content_id.clone().into(),
                     content_prev: content_prev_rev.clone().into(),
@@ -537,10 +537,10 @@ macro_rules! register_content_update_to_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_sdk::register_content_update_to_group!( $zome, "create_content_update_link", $($def)* )
+        $crate::register_content_update_to_group!( $zome, "create_content_update_link", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_sdk::register_content_update_to_group!( "coop_content_csr", $($def)* )
+        $crate::register_content_update_to_group!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -609,13 +609,13 @@ pub struct GetGroupContentMacroInput {
 macro_rules! get_group_content_latest {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_sdk::hdk_extensions;
-            use coop_content_sdk::hdk_extensions::resolve_action_addr;
-            use coop_content_sdk::hdi_extensions::{
+            use $crate::hdk_extensions;
+            use $crate::hdk_extensions::resolve_action_addr;
+            use $crate::hdi_extensions::{
                 trace_origin, guest_error,
             };
 
-            let input = coop_content_sdk::GetGroupContentMacroInput $($def)*;
+            let input = $crate::GetGroupContentMacroInput $($def)*;
             let action_addr = resolve_action_addr( &input.content_id )?;
             let history = trace_origin( &action_addr )?;
 
@@ -627,11 +627,11 @@ macro_rules! get_group_content_latest {
                 Err(guest_error!(format!("Given 'content_id' must be an ID (create action); not an update action")))?
             }
 
-            coop_content_sdk::call_local_zome_decode!(
+            $crate::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
-                coop_content_sdk::GetGroupContentInput {
+                $crate::GetGroupContentInput {
                     group_id: input.group_id,
                     content_id: input.content_id,
                     full_trace: None,
@@ -640,10 +640,10 @@ macro_rules! get_group_content_latest {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_sdk::get_group_content_latest!( $zome, "get_group_content_latest_shortcuts", $($def)* )
+        $crate::get_group_content_latest!( $zome, "get_group_content_latest_shortcuts", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_sdk::get_group_content_latest!( "coop_content_csr", $($def)* )
+        $crate::get_group_content_latest!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -706,11 +706,11 @@ pub struct GetAllGroupContentMacroInput {
 macro_rules! get_all_group_content_latest {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_sdk::hdk;
+            use $crate::hdk;
 
-            type Response = hdk::prelude::ExternResult<coop_content_sdk::LinkPointerMap>;
-            let input = coop_content_sdk::GetAllGroupContentMacroInput $($def)*;
-            let result : Response = coop_content_sdk::call_local_zome_decode!(
+            type Response = hdk::prelude::ExternResult<$crate::LinkPointerMap>;
+            let input = $crate::GetAllGroupContentMacroInput $($def)*;
+            let result : Response = $crate::call_local_zome_decode!(
                 $zome,
                 $fn_name,
                 input.group_id
@@ -719,10 +719,10 @@ macro_rules! get_all_group_content_latest {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_sdk::get_all_group_content_latest!( $zome, "get_all_group_content_targets_shortcuts", $($def)* )
+        $crate::get_all_group_content_latest!( $zome, "get_all_group_content_targets_shortcuts", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_sdk::get_all_group_content_latest!( "coop_content_csr", $($def)* )
+        $crate::get_all_group_content_latest!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -781,7 +781,7 @@ macro_rules! create_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
             let input : GroupEntry = $($def)*;
-            coop_content_sdk::call_local_zome_decode!(
+            $crate::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
@@ -790,10 +790,10 @@ macro_rules! create_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_sdk::create_group!( $zome, "create_group", $($def)* )
+        $crate::create_group!( $zome, "create_group", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_sdk::create_group!( "coop_content_csr", $($def)* )
+        $crate::create_group!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -845,7 +845,7 @@ macro_rules! get_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
             let input : ActionHash = $($def)*;
-            coop_content_sdk::call_local_zome_decode!(
+            $crate::call_local_zome_decode!(
                 GroupEntry,
                 $zome,
                 $fn_name,
@@ -854,10 +854,10 @@ macro_rules! get_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_sdk::get_group!( $zome, "get_group", $($def)* )
+        $crate::get_group!( $zome, "get_group", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_sdk::get_group!( "coop_content_csr", $($def)* )
+        $crate::get_group!( "coop_content_csr", $($def)* )
     };
 }
 
@@ -925,10 +925,10 @@ macro_rules! get_group {
 macro_rules! update_group {
     ( $zome:literal, $fn_name:literal, $($def:tt)* ) => {
         {
-            use coop_content_sdk::hdk_extensions;
+            use $crate::hdk_extensions;
 
             let input = hdk_extensions::UpdateEntryInput::<GroupEntry> $($def)*;
-            coop_content_sdk::call_local_zome_decode!(
+            $crate::call_local_zome_decode!(
                 ActionHash,
                 $zome,
                 $fn_name,
@@ -937,9 +937,9 @@ macro_rules! update_group {
         }
     };
     ( $zome:literal, $($def:tt)* ) => {
-        coop_content_sdk::update_group!( $zome, "update_group", $($def)* )
+        $crate::update_group!( $zome, "update_group", $($def)* )
     };
     ( $($def:tt)* ) => {
-        coop_content_sdk::update_group!( "coop_content_csr", $($def)* )
+        $crate::update_group!( "coop_content_csr", $($def)* )
     };
 }
