@@ -87,6 +87,7 @@ fn whoami(_: ()) -> ExternResult<AgentInfo> {
 }
 
 
+/// Create a new group entity
 #[hdk_extern]
 pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
     debug!("Creating new group entry: {:#?}", group );
@@ -107,6 +108,7 @@ pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
 }
 
 
+/// Update a group
 #[hdk_extern]
 pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionHash> {
     debug!("Update group action: {}", input.base );
@@ -182,6 +184,7 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionH
 }
 
 
+/// Get the current state for the given group ID
 #[hdk_extern]
 pub fn get_group(group_id: ActionHash) -> ExternResult<GroupEntry> {
     debug!("Get latest group entry: {}", group_id );
@@ -277,7 +280,7 @@ fn follow_update_map(
     evolutions
 }
 
-/// Get all group content using shortcuts with the optional 'content type' filter
+/// Get all revisions of group content using shortcuts with the optional 'content type' filter
 #[hdk_extern]
 pub fn follow_all_group_content_evolutions_shortcuts(
     (group_id, content_type): (ActionHash, String)
@@ -338,6 +341,8 @@ pub fn follow_all_group_content_evolutions_shortcuts(
     Ok( content_evolutions )
 }
 
+
+/// Get all group content using shortcuts with the optional 'content type' filter
 #[hdk_extern]
 pub fn get_all_group_content_targets_shortcuts(
     (group_id, content_type): (ActionHash, String)
@@ -353,17 +358,21 @@ pub fn get_all_group_content_targets_shortcuts(
 }
 
 
+/// Calculate the [`EntryHash`] for a [`ContributionsAnchorEntry`]
 #[hdk_extern]
 pub fn group_auth_anchor_hash(input: GroupAuthInput) -> ExternResult<EntryHash> {
     Ok( hash_entry( ContributionsAnchorEntry( input.group_id, input.author ) )? )
 }
 
+
+/// Calculate the [`EntryHash`] for a [`ArchivedContributionsAnchorEntry`]
 #[hdk_extern]
 pub fn group_auth_archive_anchor_hash(input: GroupAuthInput) -> ExternResult<EntryHash> {
     Ok( hash_entry( ArchivedContributionsAnchorEntry::new( input.group_id, input.author ) )? )
 }
 
 
+/// Attach some new content to the given group
 #[hdk_extern]
 pub fn create_content_link(input: CreateContributionLinkInput) -> ExternResult<ActionHash> {
     let author = agent_id()?;
@@ -384,6 +393,7 @@ pub fn create_content_link(input: CreateContributionLinkInput) -> ExternResult<A
 }
 
 
+/// Register an update to some content for the given group
 #[hdk_extern]
 pub fn create_content_update_link(input: CreateContributionUpdateLinkInput) -> ExternResult<ActionHash> {
     let author = agent_id()?;
@@ -399,6 +409,7 @@ pub fn create_content_update_link(input: CreateContributionUpdateLinkInput) -> E
 }
 
 
+/// Delete any links to the given contribution from the given author
 #[hdk_extern]
 pub fn delete_group_auth_anchor_content_links(input: (GroupAuthInput, AnyLinkableHash)) -> ExternResult<Vec<ActionHash>> {
     debug!("Input: {:#?}", input );
@@ -439,8 +450,12 @@ pub fn delete_group_auth_anchor_content_links(input: (GroupAuthInput, AnyLinkabl
 }
 
 
+/// Get all evolutions for the given content from the perspective of the given group with the
+/// optional 'full trace' filter
 #[hdk_extern]
-pub fn get_group_content_evolutions(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
+pub fn get_group_content_evolutions(
+    input: GetGroupContentInput
+) -> ExternResult<Vec<AnyLinkableHash>> {
     debug!("Get group content evolutions: {:?}", input );
     match input.full_trace {
         None | Some(false) => get_group_content_evolutions_shortcuts( input ),
@@ -448,8 +463,12 @@ pub fn get_group_content_evolutions(input: GetGroupContentInput) -> ExternResult
     }
 }
 
+
+/// Get all evolutions for the given content from the perspective of the given group using full trace
 #[hdk_extern]
-pub fn get_group_content_evolutions_full_trace(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
+pub fn get_group_content_evolutions_full_trace(
+    input: GetGroupContentInput
+) -> ExternResult<Vec<AnyLinkableHash>> {
     debug!("Get group ({}) content evolutions (full-trace): {}", input.group_id, input.content_id );
     let base_addr = resolve_action_addr( &input.content_id )?;
     let latest_addr = follow_evolutions( &input.group_id )?.last().unwrap().to_owned();
@@ -482,8 +501,12 @@ pub fn get_group_content_evolutions_full_trace(input: GetGroupContentInput) -> E
     )
 }
 
+
+/// Get all evolutions for the given content from the perspective of the given group using shortcuts
 #[hdk_extern]
-pub fn get_group_content_evolutions_shortcuts(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
+pub fn get_group_content_evolutions_shortcuts(
+    input: GetGroupContentInput
+) -> ExternResult<Vec<AnyLinkableHash>> {
     debug!("Get group ({}) content evolutions (shortcuts): {}", input.group_id, input.content_id );
     let all_content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( (input.group_id, "".into()) )?
         .into_iter().collect();
@@ -497,8 +520,12 @@ pub fn get_group_content_evolutions_shortcuts(input: GetGroupContentInput) -> Ex
 }
 
 
+/// Get the current state for the given content from the perspective of the given group with the
+/// optional 'full trace' filter
 #[hdk_extern]
-pub fn get_group_content_latest(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
+pub fn get_group_content_latest(
+    input: GetGroupContentInput
+) -> ExternResult<AnyLinkableHash> {
     debug!("Get group content latest: {:?}", input );
     match input.full_trace {
         None | Some(false) => get_group_content_latest_shortcuts( input ),
@@ -506,8 +533,12 @@ pub fn get_group_content_latest(input: GetGroupContentInput) -> ExternResult<Any
     }
 }
 
+
+/// Get the current state for the given content from the perspective of the given group using full trace
 #[hdk_extern]
-pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
+pub fn get_group_content_latest_full_trace(
+    input: GetGroupContentInput
+) -> ExternResult<AnyLinkableHash> {
     debug!("Get group ({}) content latest (full-trace): {}", input.group_id, input.content_id );
     Ok(
         get_group_content_evolutions_full_trace( input )?
@@ -516,8 +547,11 @@ pub fn get_group_content_latest_full_trace(input: GetGroupContentInput) -> Exter
 }
 
 
+/// Get the current state for the given content from the perspective of the given group using shortcuts
 #[hdk_extern]
-pub fn get_group_content_latest_shortcuts(input: GetGroupContentInput) -> ExternResult<AnyLinkableHash> {
+pub fn get_group_content_latest_shortcuts(
+    input: GetGroupContentInput
+) -> ExternResult<AnyLinkableHash> {
     debug!("Get group ({}) content latest (shortcuts): {}", input.group_id, input.content_id );
     Ok(
         get_group_content_evolutions_shortcuts( input )?
@@ -530,6 +564,7 @@ pub fn get_group_content_latest_shortcuts(input: GetGroupContentInput) -> Extern
 //
 // Generic
 //
+/// Delete all links that match the link input
 #[hdk_extern]
 pub fn delete_matching_links(input: GetLinksInput<LinkTypes>) -> ExternResult<Vec<ActionHash>> {
     debug!("GetLinksInput: {:#?}", input );
