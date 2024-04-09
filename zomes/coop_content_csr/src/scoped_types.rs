@@ -72,14 +72,14 @@ impl ContributionsLinks for ContributionsAnchorEntry {
         hash_entry( self )
     }
 
-    fn create_targets(&self) -> ExternResult<Vec<AnyLinkableHash>> {
+    fn create_targets(&self, content_type: String) -> ExternResult<Vec<AnyLinkableHash>> {
         let base = hash_entry( self )?;
         Ok(
             get_links(
                 create_link_input(
                     &base,
                     &LinkTypes::Contribution,
-                    &None::<()>,
+                    &Some(content_type.as_str().as_bytes().to_vec()),
                 )?
             )?
                 .into_iter()
@@ -132,14 +132,14 @@ impl ArchivedContributionsLinks for ArchivedContributionsAnchorEntry {
         hash_entry( self )
     }
 
-    fn create_targets(&self) -> ExternResult<Vec<AnyLinkableHash>> {
+    fn create_targets(&self, content_type: String) -> ExternResult<Vec<AnyLinkableHash>> {
         let base = self.base_hash()?;
         Ok(
             get_links(
                 create_link_input(
                     &base,
                     &LinkTypes::Contribution,
-                    &None::<()>,
+                    &Some(content_type.as_str().as_bytes().to_vec()),
                 )?
             )?
                 .into_iter()

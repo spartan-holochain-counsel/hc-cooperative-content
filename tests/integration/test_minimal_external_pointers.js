@@ -26,7 +26,6 @@ import {
     expect_reject,
     linearSuite,
     createGroupInput,
-    createContentInput,
 }					from '../utils.js';
 import {
     EntryCreationActionStruct,

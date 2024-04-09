@@ -54,6 +54,8 @@ where
 pub struct CreateContributionLinkInput {
     pub group_id: ActionHash,
     pub content_target: AnyLinkableHash,
+    #[serde(default)]
+    pub content_type: String,
 }
 
 /// Input required for registering a content update to a group
@@ -77,6 +79,8 @@ pub struct GroupAuthInput {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GetAllGroupContentInput {
     pub group_id: ActionHash,
+    #[serde(default)]
+    pub content_type: String,
     pub full_trace: Option<bool>,
 }
 
@@ -259,6 +263,7 @@ where
 ///         coop_content_sdk::CreateContributionLinkInput {
 ///             group_id: ActionHash::try_from(group_id).unwrap(),
 ///             content_target: ActionHash::try_from(content_addr).unwrap().into(),
+///             content_type: String::from("post"),
 ///         }
 ///     )?;
 ///
@@ -305,6 +310,7 @@ macro_rules! call_local_zome {
 ///         coop_content_sdk::CreateContributionLinkInput {
 ///             group_id: ActionHash::try_from(group_id).unwrap(),
 ///             content_target: ActionHash::try_from(content_addr).unwrap().into(),
+///             content_type: String::from("post"),
 ///         }
 ///     )?;
 ///
@@ -327,7 +333,7 @@ macro_rules! call_local_zome_decode {
 }
 
 
-/// Input required for macros [`register_content_to_group`] and [`register_content_update_to_group`]
+/// Input required for macros [`register_content_to_group`]
 #[derive(Clone)]
 pub struct RegisterContributionMacroInput<T>
 where
@@ -337,6 +343,8 @@ where
     pub entry: T,
     /// An entry creation action address
     pub target: ActionHash,
+    /// The type name of the target content
+    pub content_type: String,
 }
 
 
@@ -420,6 +428,7 @@ macro_rules! register_content_to_group {
                 $crate::CreateContributionLinkInput {
                     group_id: input.entry.group_ref().0,
                     content_target: input.target.clone().into(),
+                    content_type: input.content_type,
                 }
             )
         }
@@ -433,6 +442,19 @@ macro_rules! register_content_to_group {
 }
 
 
+/// Input required for macros [`register_content_update_to_group`]
+#[derive(Clone)]
+pub struct RegisterContributionUpdateMacroInput<T>
+where
+    T: GroupRef + Clone,
+{
+    /// The content entry belonging to the target
+    pub entry: T,
+    /// An entry creation action address
+    pub target: ActionHash,
+}
+
+
 /// Register a content update target to a group
 ///
 /// Rule patterns
@@ -440,7 +462,7 @@ macro_rules! register_content_to_group {
 /// - #2 - `<zome name>, <template>`
 /// - #3 - `<template>`
 ///
-/// The input template is [`RegisterContributionMacroInput`].
+/// The input template is [`RegisterContributionUpdateMacroInput`].
 ///
 /// This macro makes a local zome call using these default values:
 /// - Zome name: `coop_content_csr`
@@ -513,7 +535,7 @@ macro_rules! register_content_update_to_group {
             };
             use $crate::GroupRef;
 
-            let input = $crate::RegisterContributionMacroInput $($def)*;
+            let input = $crate::RegisterContributionUpdateMacroInput $($def)*;
             let history = trace_origin( &input.target )?;
 
             if history.len() < 2 {
@@ -652,6 +674,7 @@ macro_rules! get_group_content_latest {
 #[derive(Clone)]
 pub struct GetAllGroupContentMacroInput {
     pub group_id: ActionHash,
+    pub content_type: String,
 }
 
 /// Get the latest evolution of all content targets in a group
@@ -713,7 +736,7 @@ macro_rules! get_all_group_content_latest {
             let result : Response = $crate::call_local_zome_decode!(
                 $zome,
                 $fn_name,
-                input.group_id
+                ( input.group_id, input.content_type )
             );
             result
         }
@@ -725,6 +748,7 @@ macro_rules! get_all_group_content_latest {
         $crate::get_all_group_content_latest!( "coop_content_csr", $($def)* )
     };
 }
+
 
 
 /// Create a new group
@@ -821,14 +845,14 @@ macro_rules! create_group {
 ///
 /// ##### Example: Basic Usage
 /// ```ignore
-/// let group = get_group!( group )?;
+/// let group = get_group!( group_id )?;
 /// ```
 ///
 /// ##### Example: Custom Zome Name
 /// ```ignore
 /// let group = get_group!(
 ///     "coop_content_csr_renamed",
-///     group
+///     group_id
 /// )?;
 /// ```
 ///
@@ -837,7 +861,7 @@ macro_rules! create_group {
 /// let group = get_group!(
 ///     "custom_coop_content_csr",
 ///     "new_group",
-///     group
+///     group_id
 /// )?;
 /// ```
 #[macro_export]

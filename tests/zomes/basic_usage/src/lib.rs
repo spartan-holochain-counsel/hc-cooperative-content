@@ -18,6 +18,7 @@ use coop_content_sdk::{
 };
 use test_types::{
     ContentEntry,
+    CommentEntry,
 };
 
 
@@ -27,11 +28,17 @@ use test_types::{
 pub enum EntryTypes {
     #[entry_type]
     Content(ContentEntry),
+    #[entry_type]
+    Comment(CommentEntry),
 }
 
 scoped_type_connector!(
     EntryTypesUnit::Content,
     EntryTypes::Content( ContentEntry )
+);
+scoped_type_connector!(
+    EntryTypesUnit::Comment,
+    EntryTypes::Comment( CommentEntry )
 );
 
 
@@ -86,6 +93,14 @@ pub fn update_entry_validation(
     match app_entry {
         EntryTypes::Content(content) => {
             debug!("Checking EntryTypes::Content({:#?})", content );
+            if let Err(message) = validate_group_auth( &content, update ) {
+                invalid!(message)
+            }
+
+            valid!()
+        },
+        EntryTypes::Comment(content) => {
+            debug!("Checking EntryTypes::Comment({:#?})", content );
             if let Err(message) = validate_group_auth( &content, update ) {
                 invalid!(message)
             }

@@ -113,6 +113,7 @@ test-integration:
 	make -s test-minimal
 	make -s test-external
 	make -s test-model
+	make -s test-content-types
 
 GENERAL_DNA			= tests/general_dna.dna
 MINIMAL_DNA			= tests/minimal_dna.dna
@@ -127,6 +128,8 @@ test-external:			test-setup build $(MINIMAL_DNA)
 	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) integration/test_minimal_external_pointers.js
 test-model:			test-setup build $(TEST_DNAS)
 	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) integration/test_model_dna.js
+test-content-types:		test-setup build $(TEST_DNAS)
+	cd tests; $(TEST_ENV_VARS) npx mocha $(MOCHA_OPTS) integration/test_content_types.js
 
 
 
@@ -167,6 +170,7 @@ reset-locks:
 TYPES_DOCS		= target/doc/coop_content_types/index.html
 SDK_DOCS		= target/doc/coop_content_sdk/index.html
 COOP_DOCS		= target/doc/coop_content/index.html
+COOP_CSR_DOCS		= target/doc/coop_content_csr/index.html
 
 $(TYPES_DOCS):		coop_content_types/src/**
 	cd coop_content_types; cargo test --doc
@@ -178,10 +182,12 @@ $(SDK_DOCS):		coop_content_sdk/src/**
 	cd zomes; cargo doc
 	touch coop_content_sdk/src/lib.rs
 	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$(SDK_DOCS)\x1b[0m";
-$(COOP_DOCS):		zomes/*/src/**
+$(COOP_DOCS):
+$(COOP_CSR_DOCS):
+target/doc/%/index.html:	zomes/*/src/**
 	cd zomes; cargo test --doc
 	cd zomes; cargo doc
-	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$(COOP_DOCS)\x1b[0m";
+	@echo -e "\x1b[37mOpen docs in file://$(shell pwd)/$@\x1b[0m";
 docs:			$(SDK_DOCS) $(COOP_DOCS)
 docs-watch:
 	@inotifywait -r -m -e modify		\

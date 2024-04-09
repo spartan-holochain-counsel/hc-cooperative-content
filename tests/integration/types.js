@@ -39,7 +39,6 @@ export const GroupStruct = {
 
 export const ContentStruct = {
     "text":			String,
-    "author":			AgentPubKey,
     "group_ref":		{
 	"id": ActionHash,
 	"rev": ActionHash,
@@ -49,8 +48,18 @@ export const ContentStruct = {
     "last_updated":		Number,
 };
 
+export const CommentStruct = {
+    "text":			String,
+    "parent_comment":		OptionType( ActionHash ),
+    "group_ref":		{
+	"id": ActionHash,
+	"rev": ActionHash,
+    },
+};
+
 export default {
     EntryCreationActionStruct,
     GroupStruct,
     ContentStruct,
+    CommentStruct,
 };

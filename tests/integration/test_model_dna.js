@@ -88,7 +88,7 @@ function phase1_tests () {
 
     it("should create content (C1 + C2) via alice (A1)", async function () {
 	{
-	    const content_input		= createContentInput( alice_client.agent_id, g1_addr, g1_addr );
+	    const content_input		= createContentInput( g1_addr, g1_addr );
 	    c1_addr			= await alice_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
 	    log.debug("C1 Address: %s", new ActionHash(c1_addr) );
 
@@ -102,7 +102,7 @@ function phase1_tests () {
 	    log.debug( json.debug( c1 ) );
 	}
 	{
-	    const content_input		= createContentInput( alice_client.agent_id, g1_addr, g1_addr );
+	    const content_input		= createContentInput( g1_addr, g1_addr );
 	    c2_addr			= await alice_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
 	    log.debug("C2 Address: %s", new ActionHash(c2_addr) );
 
@@ -119,7 +119,7 @@ function phase1_tests () {
 
     it("should create content (C3) via carol (A3)", async function () {
 	{
-	    const content_input		= createContentInput( carol_client.agent_id, g1_addr, g1_addr );
+	    const content_input		= createContentInput( g1_addr, g1_addr );
 	    c3_addr			= await carol_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
 	    log.debug("C3 Address: %s", new ActionHash(c3_addr) );
 
@@ -375,7 +375,7 @@ function phase2_tests () {
 
     it("should A4 create content (C4)", async function () {
 	{
-	    const content_input		= createContentInput( david_client.agent_id, g1_addr, g1a_addr );
+	    const content_input		= createContentInput( g1_addr, g1a_addr );
 	    c4_addr			= await david_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
 	    log.debug("C4 Address: %s", new ActionHash(c4_addr) );
 
@@ -529,7 +529,7 @@ function phase3_tests () {
 
     it("should create content (C5) via carol (A3)", async function () {
 	{
-	    const content_input		= createContentInput( carol_client.agent_id, g1_addr, g1b_addr );
+	    const content_input		= createContentInput( g1_addr, g1b_addr );
 	    c5_addr			= await carol_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
 	    log.debug("C5 Address: %s", new ActionHash(c5_addr) );
 

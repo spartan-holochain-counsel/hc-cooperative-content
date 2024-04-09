@@ -192,17 +192,21 @@ pub fn get_group(group_id: ActionHash) -> ExternResult<GroupEntry> {
 }
 
 
+/// Get all group content with the optional 'content type' and 'full trace' filters
 #[hdk_extern]
 pub fn get_all_group_content_targets(input: GetAllGroupContentInput) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
     match input.full_trace {
-        None | Some(false) => get_all_group_content_targets_shortcuts( input.group_id ),
-        Some(true) => get_all_group_content_targets_full_trace( input.group_id ),
+        None | Some(false) => get_all_group_content_targets_shortcuts( (input.group_id, input.content_type) ),
+        Some(true) => get_all_group_content_targets_full_trace( (input.group_id, input.content_type) ),
     }
 }
 
 
+/// Get all group content using full trace with the optional 'content type' filter
 #[hdk_extern]
-pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
+pub fn get_all_group_content_targets_full_trace(
+    (group_id, content_type): (ActionHash, String)
+) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
     debug!("Get latest group content: {}", group_id );
     let latest_addr = follow_evolutions( &group_id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
@@ -217,7 +221,7 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
     debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
     for auth_archive_addr in auth_archive_anchors.iter() {
         let anchor : ArchivedContributionsAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
-        content_creates.extend( anchor.create_targets()? );
+        content_creates.extend( anchor.create_targets( content_type.clone() )? );
 
         let archive_updates = anchor.update_targets()?;
         let update_actions : Vec<ActionHash> = archive_updates.iter()
@@ -233,7 +237,7 @@ pub fn get_all_group_content_targets_full_trace(group_id: ActionHash) -> ExternR
     debug!("Found {} current contributors for group rev '{}'", group_auth_anchors.len(), group_rev );
     for auth_anchor_addr in group_auth_anchors.iter() {
         let anchor : ContributionsAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
-        let content_targets = anchor.create_targets()?;
+        let content_targets = anchor.create_targets( content_type.clone() )?;
         debug!("Found {} content links for group contributor '{}'", content_targets.len(), anchor.1 );
         content_creates.extend( content_targets );
     }
@@ -273,8 +277,11 @@ fn follow_update_map(
     evolutions
 }
 
+/// Get all group content using shortcuts with the optional 'content type' filter
 #[hdk_extern]
-pub fn follow_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, Vec<AnyLinkableHash>)>> {
+pub fn follow_all_group_content_evolutions_shortcuts(
+    (group_id, content_type): (ActionHash, String)
+) -> ExternResult<Vec<(AnyLinkableHash, Vec<AnyLinkableHash>)>> {
     debug!("Get latest group content: {}", group_id );
     let latest_addr = follow_evolutions( &group_id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
@@ -290,7 +297,7 @@ pub fn follow_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ex
         let anchor : ArchivedContributionsAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
         debug!("Auth archive anchor: {:#?}", anchor );
 
-        let content_ids = anchor.create_targets()?;
+        let content_ids = anchor.create_targets( content_type.clone() )?;
         debug!("Found {} content IDs: {:#?}", content_ids.len(), content_ids );
         targets.extend( content_ids );
 
@@ -308,7 +315,7 @@ pub fn follow_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ex
         let anchor : ContributionsAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
         debug!("Auth anchor: {:#?}", anchor );
 
-        let content_ids = anchor.create_targets()?;
+        let content_ids = anchor.create_targets( content_type.clone() )?;
         debug!("Found {} content IDs: {:#?}", content_ids.len(), content_ids );
         targets.extend( content_ids );
 
@@ -332,9 +339,11 @@ pub fn follow_all_group_content_evolutions_shortcuts(group_id: ActionHash) -> Ex
 }
 
 #[hdk_extern]
-pub fn get_all_group_content_targets_shortcuts(group_id: ActionHash) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
+pub fn get_all_group_content_targets_shortcuts(
+    (group_id, content_type): (ActionHash, String)
+) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
     Ok(
-        follow_all_group_content_evolutions_shortcuts( group_id )?.into_iter()
+        follow_all_group_content_evolutions_shortcuts( (group_id, content_type) )?.into_iter()
             .filter_map( |(key, evolutions)| {
                 let latest_addr = evolutions.last()?.to_owned();
                 Some( (key, latest_addr) )
@@ -364,7 +373,14 @@ pub fn create_content_link(input: CreateContributionLinkInput) -> ExternResult<A
 
     create_if_not_exists( &anchor )?;
 
-    Ok( create_link( anchor_hash, input.content_target, LinkTypes::Contribution, () )? )
+    Ok(
+        create_link(
+            anchor_hash,
+            input.content_target,
+            LinkTypes::Contribution,
+            input.content_type.as_str().as_bytes().to_vec()
+        )?
+    )
 }
 
 
@@ -469,7 +485,7 @@ pub fn get_group_content_evolutions_full_trace(input: GetGroupContentInput) -> E
 #[hdk_extern]
 pub fn get_group_content_evolutions_shortcuts(input: GetGroupContentInput) -> ExternResult<Vec<AnyLinkableHash>> {
     debug!("Get group ({}) content evolutions (shortcuts): {}", input.group_id, input.content_id );
-    let all_content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( input.group_id )?
+    let all_content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( (input.group_id, "".into()) )?
         .into_iter().collect();
 
     debug!("Looking for {} in: {:#?}", input.content_id, all_content_evolutions );
