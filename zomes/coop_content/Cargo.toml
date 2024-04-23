@@ -9,6 +9,5 @@ name = "coop_content"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-hc_coop_content_types = "0.2"
-# hc_coop_content_types = { path = "../../coop_content_types" }
+hc_coop_content_types = { version = "0.3", path = "../../coop_content_types" }
 serde = "1"

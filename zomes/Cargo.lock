@@ -824,7 +824,7 @@ checksum = "290f1a1d9242c78d09ce40a5e87e7554ee637af1351968159f4952f028f75604"
 
 [[package]]
 name = "hc_coop_content_sdk"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "hc_coop_content_types",
  "serde",
@@ -833,13 +833,11 @@ dependencies = [
 
 [[package]]
 name = "hc_coop_content_types"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20a87a54700ce808b2ce767dad007be14f25e0cc6e4216783d5b00dc730618a6"
+version = "0.3.0"
 dependencies = [
  "rmpv",
  "serde",
- "whi_hdi_extensions 0.6.0",
+ "whi_hdi_extensions",
 ]
 
 [[package]]
@@ -2384,17 +2382,6 @@ dependencies = [
 
 [[package]]
 name = "whi_hdi_extensions"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f95f61ecd91f91d10a9039af94354d9671e5ff40c87ba9f2b071a410d0b5d55"
-dependencies = [
- "hdi",
- "holo_hash",
- "serde",
-]
-
-[[package]]
-name = "whi_hdi_extensions"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05e8a2b5cbb4b196f3e89dedd17b39a7d0fad72baf43754c58a42cf104fceb27"
@@ -2413,7 +2400,7 @@ dependencies = [
  "hdk",
  "serde",
  "thiserror",
- "whi_hdi_extensions 0.7.0",
+ "whi_hdi_extensions",
 ]
 
 [[package]]
