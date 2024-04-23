@@ -1,4 +1,5 @@
-[![](https://img.shields.io/crates/v/hc_coop_content_sdk?style=flat-square)](https://crates.io/crates/hc_coop_content_sdk)
+[![](https://img.shields.io/crates/v/hc_coop_content_types?style=flat-square&label=types)](https://crates.io/crates/hc_coop_content_types)
+[![](https://img.shields.io/crates/v/hc_coop_content_sdk?style=flat-square&label=sdk)](https://crates.io/crates/hc_coop_content_sdk)
 
 # Cooperative Content
 A set of Zomes (WASMs used in Holochain DNAs) that provide patterns for collaborative content
