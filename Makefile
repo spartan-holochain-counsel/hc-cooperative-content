@@ -41,12 +41,20 @@ zomes/$(TARGET_DIR)/%.wasm:	$(SOURCE_FILES)
 	    --package $*
 	@touch $@ # Cargo must have a cache somewhere because it doesn't update the file time
 
-use-local-backdrop:
-	cd tests; npm uninstall @spartan-hc/holochain-backdrop
-	cd tests; npm install --save-dev ../../node-holochain-backdrop/
-use-npm-backdrop:
-	cd tests; npm uninstall @spartan-hc/holochain-backdrop
-	cd tests; npm install --save-dev @spartan-hc/holochain-backdrop
+npm-reinstall-local:
+	cd tests; npm uninstall $(NPM_PACKAGE); npm i --save $(LOCAL_PATH)
+npm-reinstall-public:
+	cd tests; npm uninstall $(NPM_PACKAGE); npm i --save $(NPM_PACKAGE)
+
+npm-use-app-interface-client-public:
+npm-use-app-interface-client-local:
+npm-use-app-interface-client-%:
+	NPM_PACKAGE=@spartan-hc/app-interface-client LOCAL_PATH=../../app-interface-client-js make npm-reinstall-$*
+
+npm-use-backdrop-public:
+npm-use-backdrop-local:
+npm-use-backdrop-%:
+	NPM_PACKAGE=@spartan-hc/holochain-backdrop LOCAL_PATH=../../node-holochain-backdrop make npm-reinstall-$*
 
 
 
@@ -136,11 +144,11 @@ clean-files-all:	clean-remove-chaff
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 
-PRE_HDIE_VERSION = whi_hdi_extensions = "0.4.2"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.6"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.6"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.7"
 
-PRE_HDKE_VERSION = whi_hdk_extensions = "0.4"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.6"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.6"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.7"
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ *_sdk/ tests/zomes
 

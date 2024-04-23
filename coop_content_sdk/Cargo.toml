@@ -16,4 +16,4 @@ crate-type = ["cdylib", "rlib"]
 hc_coop_content_types = "0.2"
 # hc_coop_content_types = { path = "../coop_content_types" }
 serde = "1"
-whi_hdk_extensions = "0.6"
+whi_hdk_extensions = "0.7"

@@ -155,18 +155,19 @@ describe("Minimal (external) DNA", function () {
     before(async function () {
 	this.timeout( 300_000 );
 
-	await holochain.backdrop({
-	    "test": {
-		[DNA_NAME]:		TEST_DNA_PATH,
+	await holochain.install([
+	    "alice",
+	    "bobby",
+	], [
+	    {
+		"app_name": "test",
+		"bundle": {
+		    [DNA_NAME]:		TEST_DNA_PATH,
+		},
 	    },
-	}, {
-	    "actors": [
-		"alice",
-		"bobby",
-	    ],
-	});
+	]);
 
-	app_port			= await holochain.appPorts()[0];
+	app_port			= await holochain.ensureAppPort();
 
 	client				= new AppInterfaceClient( app_port, {
 	    "logging": process.env.LOG_LEVEL || "fatal",
