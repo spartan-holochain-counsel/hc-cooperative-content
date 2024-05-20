@@ -199,8 +199,8 @@ pub fn get_group(group_id: ActionHash) -> ExternResult<GroupEntry> {
 #[hdk_extern]
 pub fn get_all_group_content_targets(input: GetAllGroupContentInput) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
     match input.full_trace {
-        None | Some(false) => get_all_group_content_targets_shortcuts( (input.group_id, input.content_type) ),
-        Some(true) => get_all_group_content_targets_full_trace( (input.group_id, input.content_type) ),
+        None | Some(false) => get_all_group_content_targets_shortcuts( (input.group_id, input.content_type, input.content_base) ),
+        Some(true) => get_all_group_content_targets_full_trace( (input.group_id, input.content_type, input.content_base) ),
     }
 }
 
@@ -208,7 +208,7 @@ pub fn get_all_group_content_targets(input: GetAllGroupContentInput) -> ExternRe
 /// Get all group content using full trace with the optional 'content type' filter
 #[hdk_extern]
 pub fn get_all_group_content_targets_full_trace(
-    (group_id, content_type): (ActionHash, String)
+    (group_id, content_type, content_base): (ActionHash, Option<String>, Option<String>)
 ) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
     debug!("Get latest group content: {}", group_id );
     let latest_addr = follow_evolutions( &group_id )?.last().unwrap().to_owned();
@@ -224,7 +224,7 @@ pub fn get_all_group_content_targets_full_trace(
     debug!("Found {} auth archives for group rev '{}'", auth_archive_anchors.len(), group_rev );
     for auth_archive_addr in auth_archive_anchors.iter() {
         let anchor : ArchivedContributionsAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
-        content_creates.extend( anchor.create_targets( content_type.clone() )? );
+        content_creates.extend( anchor.create_targets( content_type.clone(), content_base.clone() )? );
 
         let archive_updates = anchor.update_targets()?;
         let update_actions : Vec<ActionHash> = archive_updates.iter()
@@ -240,7 +240,7 @@ pub fn get_all_group_content_targets_full_trace(
     debug!("Found {} current contributors for group rev '{}'", group_auth_anchors.len(), group_rev );
     for auth_anchor_addr in group_auth_anchors.iter() {
         let anchor : ContributionsAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
-        let content_targets = anchor.create_targets( content_type.clone() )?;
+        let content_targets = anchor.create_targets( content_type.clone(), content_base.clone() )?;
         debug!("Found {} content links for group contributor '{}'", content_targets.len(), anchor.1 );
         content_creates.extend( content_targets );
     }
@@ -283,7 +283,7 @@ fn follow_update_map(
 /// Get all revisions of group content using shortcuts with the optional 'content type' filter
 #[hdk_extern]
 pub fn follow_all_group_content_evolutions_shortcuts(
-    (group_id, content_type): (ActionHash, String)
+    (group_id, content_type, content_base): (ActionHash, Option<String>, Option<String>)
 ) -> ExternResult<Vec<(AnyLinkableHash, Vec<AnyLinkableHash>)>> {
     debug!("Get latest group content: {}", group_id );
     let latest_addr = follow_evolutions( &group_id )?.last().unwrap().to_owned();
@@ -300,7 +300,7 @@ pub fn follow_all_group_content_evolutions_shortcuts(
         let anchor : ArchivedContributionsAnchorEntry = must_get( auth_archive_addr )?.try_into()?;
         debug!("Auth archive anchor: {:#?}", anchor );
 
-        let content_ids = anchor.create_targets( content_type.clone() )?;
+        let content_ids = anchor.create_targets( content_type.clone(), content_base.clone() )?;
         debug!("Found {} content IDs: {:#?}", content_ids.len(), content_ids );
         targets.extend( content_ids );
 
@@ -318,7 +318,7 @@ pub fn follow_all_group_content_evolutions_shortcuts(
         let anchor : ContributionsAnchorEntry = must_get( auth_anchor_addr )?.try_into()?;
         debug!("Auth anchor: {:#?}", anchor );
 
-        let content_ids = anchor.create_targets( content_type.clone() )?;
+        let content_ids = anchor.create_targets( content_type.clone(), content_base.clone() )?;
         debug!("Found {} content IDs: {:#?}", content_ids.len(), content_ids );
         targets.extend( content_ids );
 
@@ -345,10 +345,10 @@ pub fn follow_all_group_content_evolutions_shortcuts(
 /// Get all group content using shortcuts with the optional 'content type' filter
 #[hdk_extern]
 pub fn get_all_group_content_targets_shortcuts(
-    (group_id, content_type): (ActionHash, String)
+    (group_id, content_type, content_base): (ActionHash, Option<String>, Option<String>)
 ) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash)>> {
     Ok(
-        follow_all_group_content_evolutions_shortcuts( (group_id, content_type) )?.into_iter()
+        follow_all_group_content_evolutions_shortcuts( (group_id, content_type, content_base) )?.into_iter()
             .filter_map( |(key, evolutions)| {
                 let latest_addr = evolutions.last()?.to_owned();
                 Some( (key, latest_addr) )
@@ -376,7 +376,8 @@ pub fn group_auth_archive_anchor_hash(input: GroupAuthInput) -> ExternResult<Ent
 #[hdk_extern]
 pub fn create_content_link(input: CreateContributionLinkInput) -> ExternResult<ActionHash> {
     let author = agent_id()?;
-    debug!("Creating content link from ContributionsAnchorEntry( {}, {} ) => {}", input.group_id, author, input.content_target );
+    let tag = format!("{}:{}", input.content_type, input.content_base.unwrap_or("".to_string()) );
+    debug!("Creating content link from ContributionsAnchorEntry( {}, {} ) =[{}]=> {}", input.group_id, author, tag, input.content_target );
     let anchor = ContributionsAnchorEntry( input.group_id, author );
     let anchor_hash = hash_entry( &anchor )?;
 
@@ -387,7 +388,7 @@ pub fn create_content_link(input: CreateContributionLinkInput) -> ExternResult<A
             anchor_hash,
             input.content_target,
             LinkTypes::Contribution,
-            input.content_type.as_str().as_bytes().to_vec()
+            tag.as_str().as_bytes().to_vec()
         )?
     )
 }
@@ -405,7 +406,14 @@ pub fn create_content_update_link(input: CreateContributionUpdateLinkInput) -> E
     create_if_not_exists( &anchor )?;
 
     debug!("Creating content update link from {} --'{}'--> {}", anchor_hash, tag, input.content_next );
-    Ok( create_link( anchor_hash, input.content_next, LinkTypes::ContributionUpdate, tag.into_bytes() )? )
+    Ok(
+        create_link(
+            anchor_hash,
+            input.content_next,
+            LinkTypes::ContributionUpdate,
+            tag.into_bytes()
+        )?
+    )
 }
 
 
@@ -508,7 +516,7 @@ pub fn get_group_content_evolutions_shortcuts(
     input: GetGroupContentInput
 ) -> ExternResult<Vec<AnyLinkableHash>> {
     debug!("Get group ({}) content evolutions (shortcuts): {}", input.group_id, input.content_id );
-    let all_content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( (input.group_id, "".into()) )?
+    let all_content_evolutions : EvolutionMap = follow_all_group_content_evolutions_shortcuts( (input.group_id, None, None) )?
         .into_iter().collect();
 
     debug!("Looking for {} in: {:#?}", input.content_id, all_content_evolutions );

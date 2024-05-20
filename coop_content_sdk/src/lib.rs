@@ -56,6 +56,7 @@ pub struct CreateContributionLinkInput {
     pub content_target: AnyLinkableHash,
     #[serde(default)]
     pub content_type: String,
+    pub content_base: Option<String>,
 }
 
 /// Input required for registering a content update to a group
@@ -80,7 +81,8 @@ pub struct GroupAuthInput {
 pub struct GetAllGroupContentInput {
     pub group_id: ActionHash,
     #[serde(default)]
-    pub content_type: String,
+    pub content_type: Option<String>,
+    pub content_base: Option<String>,
     pub full_trace: Option<bool>,
 }
 
@@ -345,6 +347,8 @@ where
     pub target: ActionHash,
     /// The type name of the target content
     pub content_type: String,
+    /// Optional base filter of the target content
+    pub content_base: Option<String>,
 }
 
 
@@ -429,6 +433,7 @@ macro_rules! register_content_to_group {
                     group_id: input.entry.group_ref().0,
                     content_target: input.target.clone().into(),
                     content_type: input.content_type,
+                    content_base: input.content_base,
                 }
             )
         }
@@ -674,7 +679,8 @@ macro_rules! get_group_content_latest {
 #[derive(Clone)]
 pub struct GetAllGroupContentMacroInput {
     pub group_id: ActionHash,
-    pub content_type: String,
+    pub content_type: Option<String>,
+    pub content_base: Option<String>,
 }
 
 /// Get the latest evolution of all content targets in a group
@@ -736,7 +742,7 @@ macro_rules! get_all_group_content_latest {
             let result : Response = $crate::call_local_zome_decode!(
                 $zome,
                 $fn_name,
-                ( input.group_id, input.content_type )
+                ( input.group_id, input.content_type, input.content_base )
             );
             result
         }

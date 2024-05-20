@@ -55,6 +55,7 @@ let carol_client;
 let group, g1_addr;
 let c1, c1_addr;
 let c2, c2_addr;
+let c3, c3_addr;
 
 
 function phase1_tests () {
@@ -77,14 +78,22 @@ function phase1_tests () {
     it("(A1) should create each content type", async function () {
 	{
 	    const content_input		= createContentInput( g1_addr, g1_addr );
-	    c1_addr			= await alice_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
+	    c1_addr			= new ActionHash( await alice_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input ) );
 	    log.debug("C1 Address: %s", new ActionHash(c1_addr) );
 	}
 
 	{
 	    const comment_input		= createCommentInput( g1_addr, g1_addr );
-	    c2_addr			= await alice_client.call( DNA_NAME, GOOD_ZOME, "create_comment", comment_input );
+	    c2_addr			= new ActionHash( await alice_client.call( DNA_NAME, GOOD_ZOME, "create_comment", comment_input ) );
 	    log.debug("C2 Address: %s", new ActionHash(c2_addr) );
+	}
+
+	{
+	    const comment_input		= createCommentInput( g1_addr, g1_addr, {
+		"parent_comment":	c2_addr,
+	    });
+	    c3_addr			= new ActionHash( await alice_client.call( DNA_NAME, GOOD_ZOME, "create_comment", comment_input ) );
+	    log.debug("C3 Address: %s", new ActionHash(c3_addr) );
 	}
     });
 
@@ -94,13 +103,24 @@ function phase1_tests () {
 	});
 	log.normal("Group content targets: %s", json.debug(targets) );
 
-	expect( targets			).to.have.lengthOf( 2 );
+	expect( targets			).to.have.lengthOf( 3 );
     });
 
     it("should get group comments", async function () {
 	const targets			= await carol_client.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
 	    "group_id": g1_addr,
 	    "content_type": "comment",
+	});
+	log.normal("Group content targets: %s", json.debug(targets) );
+
+	expect( targets			).to.have.lengthOf( 2 );
+    });
+
+    it("should get group comments for parent comment", async function () {
+	const targets			= await carol_client.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
+	    "group_id": g1_addr,
+	    "content_type": "comment",
+	    "content_base": String(c2_addr),
 	});
 	log.normal("Group content targets: %s", json.debug(targets) );
 
@@ -111,7 +131,7 @@ function phase1_tests () {
 
 
 
-describe("Model DNA", function () {
+describe("Content Types", function () {
     const holochain			= new Holochain({
 	"timeout": 60_000,
 	"default_stdout_loggers": log.level_rank > 3,

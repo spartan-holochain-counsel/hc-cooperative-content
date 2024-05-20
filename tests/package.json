@@ -16,6 +16,7 @@
     "@whi/json": "^0.1.7",
     "@whi/weblogger": "^0.4.0",
     "chai": "^4.3.7",
+    "defaults": "^3.0.0",
     "mocha": "^10.2.0",
     "why-is-node-running": "^2.2.2"
   }

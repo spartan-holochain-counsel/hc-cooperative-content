@@ -114,6 +114,7 @@ pub fn get_group_content(input: GetAllGroupContentInput) -> ExternResult<Vec<Ent
     let contents = get_all_group_content_latest!({
         group_id: input.group_id,
         content_type: input.content_type,
+        content_base: input.content_base,
     })?.into_iter()
         .filter_map(|(origin, latest)| {
             let origin_addr = origin.into_action_hash()?;
@@ -140,6 +141,7 @@ pub fn create_content(content: ContentEntry) -> ExternResult<ActionHash> {
         entry: content,
         target: action_hash.clone(),
         content_type: String::from("content"),
+        content_base: None,
     })?;
 
     Ok( action_hash )
@@ -171,11 +173,14 @@ pub fn update_content(input: UpdateInput) -> ExternResult<ActionHash> {
 pub fn create_comment(comment: CommentEntry) -> ExternResult<ActionHash> {
     debug!("Creating new comment entry: {:#?}", comment );
     let action_hash = create_entry( comment.to_input() )?;
+    let content_base = comment.parent_comment.clone()
+        .map( |base| format!("{}", base ) );
 
     register_content_to_group!({
         entry: comment,
         target: action_hash.clone(),
         content_type: String::from("comment"),
+        content_base,
     })?;
 
     Ok( action_hash )

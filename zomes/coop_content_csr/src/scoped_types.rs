@@ -72,14 +72,25 @@ impl ContributionsLinks for ContributionsAnchorEntry {
         hash_entry( self )
     }
 
-    fn create_targets(&self, content_type: String) -> ExternResult<Vec<AnyLinkableHash>> {
+    fn create_targets(
+        &self,
+        content_type: Option<String>,
+        content_base: Option<String>
+    ) -> ExternResult<Vec<AnyLinkableHash>> {
         let base = hash_entry( self )?;
+        let content_type = content_type.unwrap_or("".to_string());
+        let tag = match content_base {
+            Some(base) => format!("{}:{}", content_type, base ),
+            None => content_type,
+        };
+        debug!("Get links {}<{:?}> =[{}]=> *", base, LinkTypes::Contribution, tag );
+
         Ok(
             get_links(
                 create_link_input(
                     &base,
                     &LinkTypes::Contribution,
-                    &Some(content_type.as_str().as_bytes().to_vec()),
+                    &Some(tag.as_str().as_bytes().to_vec()),
                 )?
             )?
                 .into_iter()
@@ -132,14 +143,25 @@ impl ArchivedContributionsLinks for ArchivedContributionsAnchorEntry {
         hash_entry( self )
     }
 
-    fn create_targets(&self, content_type: String) -> ExternResult<Vec<AnyLinkableHash>> {
+    fn create_targets(
+        &self,
+        content_type: Option<String>,
+        content_base: Option<String>
+    ) -> ExternResult<Vec<AnyLinkableHash>> {
         let base = self.base_hash()?;
+        let content_type = content_type.unwrap_or("".to_string());
+        let tag = match content_base {
+            Some(base) => format!("{}:{}", content_type, base ),
+            None => content_type,
+        };
+        debug!("Get links {}<{:?}> =[{}]=> *", base, LinkTypes::Contribution, tag );
+
         Ok(
             get_links(
                 create_link_input(
                     &base,
                     &LinkTypes::Contribution,
-                    &Some(content_type.as_str().as_bytes().to_vec()),
+                    &Some(tag.as_str().as_bytes().to_vec()),
                 )?
             )?
                 .into_iter()

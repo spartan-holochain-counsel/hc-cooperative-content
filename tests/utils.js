@@ -1,4 +1,5 @@
 
+import defaults				from 'defaults';
 import { expect }			from 'chai';
 import { faker }			from '@faker-js/faker';
 
@@ -38,8 +39,8 @@ export function createGroupInput ( admins, ...members ) {
     };
 };
 
-export function createContentInput ( group_id, group_rev ) {
-    return {
+export function createContentInput ( group_id, group_rev, overrides = {} ) {
+    return defaults( overrides, {
 	"text":			faker.lorem.sentence(),
 	"group_ref": {
 	    "id":		group_id,
@@ -48,18 +49,18 @@ export function createContentInput ( group_id, group_rev ) {
 
 	"published_at":		Date.now(),
 	"last_updated":		Date.now(),
-    };
+    });
 };
 
-export function createCommentInput ( group_id, group_rev ) {
-    return {
+export function createCommentInput ( group_id, group_rev, overrides = {} ) {
+    return defaults( overrides, {
 	"text":			faker.lorem.sentence(),
 	"parent_comment":	null,
 	"group_ref": {
 	    "id":		group_id,
 	    "rev":		group_rev,
 	},
-    };
+    });
 };
 
 
