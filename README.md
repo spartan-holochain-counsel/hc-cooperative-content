@@ -6,9 +6,9 @@ A set of Zomes (WASMs used in Holochain DNAs) that provide patterns for collabor
 management.
 
 
-[![](https://img.shields.io/github/issues-raw/mjbrisebois/hc-cooperative-content?style=flat-square)](https://github.com/mjbrisebois/hc-cooperative-content/issues)
-[![](https://img.shields.io/github/issues-closed-raw/mjbrisebois/hc-cooperative-content?style=flat-square)](https://github.com/mjbrisebois/hc-cooperative-content/issues?q=is%3Aissue+is%3Aclosed)
-[![](https://img.shields.io/github/issues-pr-raw/mjbrisebois/hc-cooperative-content?style=flat-square)](https://github.com/mjbrisebois/hc-cooperative-content/pulls)
+[![](https://img.shields.io/github/issues-raw/spartan-holochain-counsel/hc-cooperative-content?style=flat-square)](https://github.com/spartan-holochain-counsel/hc-cooperative-content/issues)
+[![](https://img.shields.io/github/issues-closed-raw/spartan-holochain-counsel/hc-cooperative-content?style=flat-square)](https://github.com/spartan-holochain-counsel/hc-cooperative-content/issues?q=is%3Aissue+is%3Aclosed)
+[![](https://img.shields.io/github/issues-pr-raw/spartan-holochain-counsel/hc-cooperative-content?style=flat-square)](https://github.com/spartan-holochain-counsel/hc-cooperative-content/pulls)
 
 ## Overview
 Cooperative content is about grouping a set of agents under a common goal and enabling others to
