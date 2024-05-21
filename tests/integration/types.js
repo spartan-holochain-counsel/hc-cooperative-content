@@ -1,8 +1,14 @@
-import { AgentPubKey, HoloHash,
-	 ActionHash, EntryHash }	from '@spartan-hc/holo-hash';
 import {
+    AgentPubKey, AnyLinkableHash,
+    ActionHash, EntryHash,
+}					from '@spartan-hc/holo-hash';
+import {
+    intoStruct,
     OptionType, VecType, MapType,
 }					from '@whi/into-struct';
+import {
+    Zomelet,
+}					from '@spartan-hc/zomelets'; // approx. 7kb
 
 
 export const EntryCreationActionStruct = {
@@ -37,6 +43,10 @@ export const GroupStruct = {
     "metadata":			{},
 };
 
+export function Group ( entry ) {
+    return intoStruct( entry, GroupStruct );
+}
+
 export const ContentStruct = {
     "text":			String,
     "group_ref":		{
@@ -48,6 +58,10 @@ export const ContentStruct = {
     "last_updated":		Number,
 };
 
+export function Content ( entry ) {
+    return intoStruct( entry, ContentStruct );
+}
+
 export const CommentStruct = {
     "text":			String,
     "parent_comment":		OptionType( ActionHash ),
@@ -57,9 +71,87 @@ export const CommentStruct = {
     },
 };
 
+export function Comment ( entry ) {
+    return intoStruct( entry, CommentStruct );
+}
+
+
+const functions				= {
+    "whoami": {
+	output ( response ) {
+	    // Struct - https://docs.rs/hdk/*/hdk/prelude/struct.AgentInfo.html
+	    return {
+		"pubkey": {
+		    "initial":		new AgentPubKey( response.agent_initial_pubkey ),
+		    "latest":		new AgentPubKey( response.agent_latest_pubkey ),
+		},
+		"chain_head": {
+		    "action":		new ActionHash( response.chain_head[0] ),
+		    "sequence":		response.chain_head[1],
+		    "timestamp":	response.chain_head[2],
+		},
+	    };
+	},
+    },
+
+    async get_group ( input ) {
+	const result			= await this.call( input );
+
+	return Group( result );
+    },
+
+    async create_content ( input ) {
+	const result			= await this.call( input );
+
+	return new ActionHash( result );
+    },
+
+    async create_comment ( input ) {
+	const result			= await this.call( input );
+
+	return new ActionHash( result );
+    },
+
+    async get_group_content ( input ) {
+	const result			= await this.call({
+	    "group_id": input.group_id,
+	    "content_type": input.content_type,
+	    "content_base": input.content_base,
+	});
+
+	return result.map( ([ctx, content]) => {
+	    if ( content.type === "content" )
+		content			= Content( content );
+	    else if ( content.type === "comment" )
+		content			= Comment( content );
+
+	    return [
+		[
+		    new AnyLinkableHash( ctx[0] ),
+		    new AnyLinkableHash( ctx[1] ),
+		],
+		content,
+	    ];
+	});
+    },
+};
+
+export const BasicUsageCSRZomelet	= new Zomelet({
+    functions,
+});
+
+
 export default {
     EntryCreationActionStruct,
+
     GroupStruct,
+    Group,
+
     ContentStruct,
+    Content,
+
     CommentStruct,
+    Comment,
+
+    BasicUsageCSRZomelet,
 };

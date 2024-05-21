@@ -2,6 +2,7 @@ pub mod entry_traits;
 
 use crate::hdk::prelude::*;
 use crate::hdi_extensions::{
+    guest_error,
     AnyLinkableHashTransformer,
 };
 use coop_content::{
@@ -77,6 +78,13 @@ impl ContributionsLinks for ContributionsAnchorEntry {
         content_type: Option<String>,
         content_base: Option<String>
     ) -> ExternResult<Vec<AnyLinkableHash>> {
+        if content_type.is_none() && content_base.is_some() {
+            Err(guest_error!(format!(
+                "'content_type' cannot be None if 'content_base' is Some(..); type={:?} base={:?}",
+                content_type, content_base,
+            )))?
+        }
+
         let base = hash_entry( self )?;
         let content_type = content_type.unwrap_or("".to_string());
         let tag = match content_base {
@@ -148,6 +156,13 @@ impl ArchivedContributionsLinks for ArchivedContributionsAnchorEntry {
         content_type: Option<String>,
         content_base: Option<String>
     ) -> ExternResult<Vec<AnyLinkableHash>> {
+        if content_type.is_none() && content_base.is_some() {
+            Err(guest_error!(format!(
+                "'content_type' cannot be None if 'content_base' is Some(..); type={:?} base={:?}",
+                content_type, content_base,
+            )))?
+        }
+
         let base = self.base_hash()?;
         let content_type = content_type.unwrap_or("".to_string());
         let tag = match content_base {
