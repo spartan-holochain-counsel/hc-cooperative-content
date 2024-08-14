@@ -26,6 +26,7 @@ import {
     linearSuite,
     createGroupInput,
     createContentInput,
+    delay,
 }					from '../utils.js';
 import {
     EntryCreationActionStruct,
@@ -34,7 +35,6 @@ import {
 }					from './types.js';
 
 
-const delay				= (n) => new Promise(f => setTimeout(f, n));
 const __filename			= new URL(import.meta.url).pathname;
 const __dirname				= path.dirname( __filename );
 const TEST_DNA_PATH			= path.join( __dirname, "../model_dna.dna" );
@@ -125,6 +125,8 @@ function phase1_tests () {
 
 	    expect( c3_addr		).to.be.a("Uint8Array");
 	    expect( c3_addr		).to.have.length( 39 );
+
+            await delay();
 
 	    c3				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
 		"group_id": g1_addr,
@@ -382,6 +384,8 @@ function phase2_tests () {
 	    expect( c4_addr		).to.be.a("Uint8Array");
 	    expect( c4_addr		).to.have.length( 39 );
 
+            await delay();
+
 	    c4				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
 		"group_id": g1_addr,
 		"content_id": c4_addr,
@@ -535,6 +539,8 @@ function phase3_tests () {
 
 	    expect( c5_addr		).to.be.a("Uint8Array");
 	    expect( c5_addr		).to.have.length( 39 );
+
+            await delay();
 
 	    c5				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
 		"group_id": g1_addr,

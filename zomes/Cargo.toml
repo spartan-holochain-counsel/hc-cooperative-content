@@ -3,3 +3,4 @@ members = [
   "coop_content",
   "coop_content_csr",
 ]
+resolver = "2"

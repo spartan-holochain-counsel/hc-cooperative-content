@@ -6,3 +6,4 @@ members = [
   "basic_usage_csr",
   "corrupt_csr",
 ]
+resolver = "2"

@@ -54,9 +54,15 @@ export function createContentInput ( author, group_id, group_rev ) {
 };
 
 
+export function delay ( n = 1 ) {
+    return new Promise( f => setTimeout(f, n * 1_000) );
+}
+
+
 export default {
     expect_reject,
     linearSuite,
     createGroupInput,
     createContentInput,
+    delay,
 };

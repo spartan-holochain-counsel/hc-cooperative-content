@@ -89,7 +89,7 @@ publish-sdk-crate:		.cargo/credentials
 #
 DEBUG_LEVEL	       ?= warn
 TEST_ENV_VARS		= LOG_LEVEL=$(DEBUG_LEVEL)
-MOCHA_OPTS		= -n enable-source-maps
+MOCHA_OPTS		= -n enable-source-maps -t 10000
 
 reset:
 	rm -f zomes/*.wasm
@@ -144,11 +144,15 @@ clean-files-all:	clean-remove-chaff
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 
+PRE_EDITION = edition = "2018"
+NEW_EDITION = edition = "2021"
+
 PRE_HDIE_VERSION = whi_hdi_extensions = "0.7"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.9"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.10"
 
 PRE_HDKE_VERSION = whi_hdk_extensions = "0.7"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.9"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.10"
+
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ *_sdk/ tests/zomes
 
@@ -156,6 +160,8 @@ update-hdk-extensions-version:
 	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
 update-hdi-extensions-version:
 	git grep -l '$(PRE_HDIE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDIE_VERSION)|$(NEW_HDIE_VERSION)|g'
+update-edition:
+	git grep -l '$(PRE_EDITION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(PRE_EDITION)/$(NEW_EDITION)/g'
 reset-locks:
 	rm -f zomes/Cargo.lock
 	rm -f tests/zomes/Cargo.lock
