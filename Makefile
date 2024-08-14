@@ -62,6 +62,7 @@ npm-use-backdrop-%:
 # Packages
 #
 .cargo/credentials:
+	mkdir -p .cargo
 	cp ~/$@ $@
 
 preview-types-crate:

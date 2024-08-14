@@ -10,6 +10,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 coop_content = { path = "../coop_content" }
-hc_coop_content_sdk = { version = "0.5", path = "../../coop_content_sdk" }
+hc_coop_content_sdk = { version = "0.6", path = "../../coop_content_sdk" }
 lazy_static = "1.4"
 serde = "1"
