@@ -1,6 +1,6 @@
 [package]
 name = "hc_coop_content_types"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
 edition = "2021"
 license = "CAL-1.0"
