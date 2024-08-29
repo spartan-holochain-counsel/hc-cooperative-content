@@ -11,7 +11,7 @@
     "@faker-js/faker": "^8.0.2",
     "@spartan-hc/app-interface-client": "^0.7.2",
     "@spartan-hc/holo-hash": "^0.7.0",
-    "@spartan-hc/holochain-backdrop": "^4.4.1",
+    "@spartan-hc/holochain-backdrop": "^4.5.1",
     "@whi/into-struct": "^0.3.0",
     "@whi/json": "^0.1.7",
     "@whi/weblogger": "^0.4.0",

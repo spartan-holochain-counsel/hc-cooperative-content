@@ -19,6 +19,7 @@ use hdk_extensions::{
     UpdateEntryInput,
     GetLinksInput,
 };
+pub use scoped_types::entry_traits::*;
 use hdi_extensions::{
     trace_origin_root,
     ScopedTypeConnector,
@@ -45,7 +46,6 @@ use coop_content_sdk::{
     CreateContributionLinkInput,
     CreateContributionUpdateLinkInput,
 };
-use scoped_types::entry_traits::*;
 
 
 lazy_static! {
