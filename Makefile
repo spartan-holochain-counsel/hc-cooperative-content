@@ -29,13 +29,15 @@ clean:
 rebuild:			clean build
 build:				$(COOP_CONTENT_WASM) $(COOP_CONTENT_CSR_WASM)
 
-zomes/%.wasm:			zomes/$(TARGET_DIR)/%.wasm
+$(MERE_MEMORY_WASM):
+$(MERE_MEMORY_CSR_WASM):
+zomes/%.wasm:			$(TARGET_DIR)/%.wasm
 	@echo -e "\x1b[38;2mCopying WASM ($<) to 'zomes' directory: $@\x1b[0m"; \
 	cp $< $@
-zomes/$(TARGET_DIR)/%.wasm:	$(SOURCE_FILES)
+
+$(TARGET_DIR)/%.wasm:	$(SOURCE_FILES)
 	rm -f zomes/$*.wasm
 	@echo -e "\x1b[37mBuilding zome '$*' -> $@\x1b[0m"; \
-	cd zomes; \
 	RUST_BACKTRACE=1 CARGO_TARGET_DIR=target cargo build --release \
 	    --target wasm32-unknown-unknown \
 	    --package $*

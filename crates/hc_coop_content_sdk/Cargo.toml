@@ -13,6 +13,6 @@ name = "coop_content_sdk"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-hc_coop_content_types = { version = "0.6", path = "../coop_content_types" }
+hc_coop_content_types = { version = "0.6", path = "../hc_coop_content_types" }
 serde = "1"
 whi_hdk_extensions = "0.12"
