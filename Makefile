@@ -1,10 +1,20 @@
-
 .PHONY:			FORCE
 SHELL			= bash
+
 TARGET			= release
 TARGET_DIR		= target/wasm32-unknown-unknown/release
-SOURCE_FILES		= Makefile zomes/Cargo.* zomes/*/Cargo.toml zomes/*/src/*.rs zomes/*/src/*/* \
-				coop_content_sdk/Cargo.toml coop_content_sdk/src/*.rs
+
+TYPES_DIR		= crates/hc_coop_content_types
+SDK_DIR			= crates/hc_coop_content_sdk
+INT_DIR			= zomes/coop_content
+CSR_DIR			= zomes/coop_content_csr
+COMMON_SOURCE_FILES	= Makefile Cargo.toml \
+				$(TYPES_DIR)/Cargo.toml $(TYPES_DIR)/src/*.rs
+INT_SOURCE_FILES	= $(COMMON_SOURCE_FILES) \
+				$(INT_DIR)/Cargo.toml $(INT_DIR)/src/*.rs
+CSR_SOURCE_FILES	= $(INT_SOURCE_FILES) \
+				$(CSR_DIR)/Cargo.toml $(CSR_DIR)/src/*.rs \
+				$(SDK_DIR)/Cargo.toml $(SDK_DIR)/src/*.rs
 
 # Zomes (WASM)
 COOP_CONTENT_WASM	= zomes/coop_content.wasm
@@ -29,18 +39,28 @@ clean:
 rebuild:			clean build
 build:				$(COOP_CONTENT_WASM) $(COOP_CONTENT_CSR_WASM)
 
+zomes:
+	mkdir $@
 $(MERE_MEMORY_WASM):
 $(MERE_MEMORY_CSR_WASM):
 zomes/%.wasm:			$(TARGET_DIR)/%.wasm
 	@echo -e "\x1b[38;2mCopying WASM ($<) to 'zomes' directory: $@\x1b[0m"; \
 	cp $< $@
 
-$(TARGET_DIR)/%.wasm:	$(SOURCE_FILES)
+$(TARGET_DIR)/%.wasm:		$(INT_SOURCE_FILES)
 	rm -f zomes/$*.wasm
 	@echo -e "\x1b[37mBuilding zome '$*' -> $@\x1b[0m"; \
-	RUST_BACKTRACE=1 CARGO_TARGET_DIR=target cargo build --release \
+	RUST_BACKTRACE=1 cargo build --release \
 	    --target wasm32-unknown-unknown \
 	    --package $*
+	@touch $@ # Cargo must have a cache somewhere because it doesn't update the file time
+
+$(TARGET_DIR)/%_csr.wasm:	zomes $(CSR_SOURCE_FILES)
+	rm -f zomes/$*_csr.wasm
+	@echo -e "\x1b[37mBuilding zome '$*_csr' -> $@\x1b[0m";
+	RUST_BACKTRACE=1 cargo build --release \
+	    --target wasm32-unknown-unknown \
+	    --package $*_csr
 	@touch $@ # Cargo must have a cache somewhere because it doesn't update the file time
 
 npm-reinstall-local:
@@ -201,3 +221,23 @@ docs-watch:
 		echo -e "\x1b[37m$$event $$dir$$file\x1b[0m";\
 		make docs;			\
 	done
+
+
+
+#
+# NPM packaging
+#
+prepare-zomelets-package:	zomelets/node_modules
+	cd zomelets; rm -f dist/*
+	cd zomelets; npx webpack
+	cd zomelets; MODE=production npx webpack
+	cd zomelets; gzip -kf dist/*.js
+preview-zomelets-package:	clean-files prepare-zomelets-package
+	DEBUG_LEVEL=trace make -s test
+	cd zomelets; npm pack --dry-run .
+create-zomelets-package:	clean-files prepare-zomelets-package
+	DEBUG_LEVEL=trace make -s test
+	cd zomelets; npm pack .
+publish-zomelets-package:	clean-files prepare-zomelets-package
+	DEBUG_LEVEL=trace make -s test
+	cd zomelets; npm publish --access public .

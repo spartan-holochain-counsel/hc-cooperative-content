@@ -10,8 +10,11 @@
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
     "@spartan-hc/app-interface-client": "^0.7.2",
+    "@spartan-hc/coop-content-zomelets": "file:../zomelets",
+    "@spartan-hc/entities": "^0.1.1",
     "@spartan-hc/holo-hash": "^0.7.0",
     "@spartan-hc/holochain-backdrop": "^4.5.1",
+    "@spartan-hc/zomelets": "^0.2.0",
     "@whi/into-struct": "^0.3.0",
     "@whi/json": "^0.1.7",
     "@whi/weblogger": "^0.4.0",

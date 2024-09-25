@@ -2,9 +2,7 @@
 COMMON_SOURCE_FILES	= ../Makefile ../zomes/Cargo.* ../zomes/*/Cargo.toml ../zomes/*/src/*.rs ../zomes/*/src/*/* \
 				../coop_content_sdk/Cargo.toml ../coop_content_sdk/src/*.rs \
 				Makefile test_types/Cargo.toml test_types/src/*.rs zomes/Cargo.toml zomes/Cargo.lock
-DNA_SOURCE_FILES	= %/dna.yaml \
-				zomes/*/Cargo.toml zomes/*/src/*.rs \
-				$(COMMON_SOURCE_FILES)
+DNA_SOURCE_FILES	= %/dna.yaml ../zomes/*.wasm zomes/*.wasm
 ZOME_SOURCE_FILES	= zomes/%/Cargo.toml zomes/%/src/*.rs \
 				$(COMMON_SOURCE_FILES)
 

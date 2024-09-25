@@ -10,8 +10,11 @@ import msgpack				from '@msgpack/msgpack';
 import json				from '@whi/json';
 import { AgentPubKey, HoloHash,
 	 ActionHash, EntryHash }	from '@spartan-hc/holo-hash';
-import HolochainBackdrop		from '@spartan-hc/holochain-backdrop';
-const { Holochain }			= HolochainBackdrop;
+import { Holochain }                    from '@spartan-hc/holochain-backdrop';
+
+import {
+    CoopContentZomelet,
+}					from '@spartan-hc/coop-content-zomelets';
 import {
     AppInterfaceClient,
 }					from '@spartan-hc/app-interface-client';
@@ -33,6 +36,9 @@ import {
     GroupStruct,
     ContentStruct,
 }					from './types.js';
+import {
+    BasicUsageZomelet,
+}					from '../test_zomelets.js';
 
 
 const __filename			= new URL(import.meta.url).pathname;
@@ -47,15 +53,89 @@ const COOP_ZOME				= "coop_content_csr";
 const GOOD_ZOME				= "basic_usage_csr";
 const EVIL_ZOME				= "corrupt_csr";
 
+let client, installations;
 
-let app_port;
-let client;
+describe("Model DNA", function () {
+    const holochain			= new Holochain({
+	"timeout": 60_000,
+	"default_stdout_loggers": log.level_rank > 3,
+    });
+
+    before(async function () {
+	this.timeout( 300_000 );
+
+	installations			= await holochain.install([
+	    "alice", // admin
+	    "bobby", // constant member
+	    "carol", // member removed later
+	    "david", // member added later
+	    "emily", // admin
+	    "felix", // admin removed later
+	], [
+	    {
+		"app_name": "test",
+		"bundle": {
+		    [DNA_NAME]:		TEST_DNA_PATH,
+		},
+	    },
+	]);
+
+	const app_port			= await holochain.ensureAppPort();
+
+	client				= new AppInterfaceClient( app_port, {
+	    "logging": process.env.LOG_LEVEL || "fatal",
+	});
+
+	const alice_token		= installations.alice.test.auth.token;
+	alice_client			= await client.app( alice_token );
+
+	const bobby_token		= installations.bobby.test.auth.token;
+	bobby_client			= await client.app( bobby_token );
+
+	const carol_token		= installations.carol.test.auth.token;
+	carol_client			= await client.app( carol_token );
+
+	const david_token		= installations.david.test.auth.token;
+	david_client			= await client.app( david_token );
+
+	const emily_token		= installations.emily.test.auth.token;
+	emily_client			= await client.app( emily_token );
+
+	const felix_token		= installations.felix.test.auth.token;
+	felix_client			= await client.app( felix_token );
+    });
+
+    describe("Group", function () {
+	linearSuite( "Phase 1", phase1_tests );
+	linearSuite( "Phase 2", phase2_tests );
+	linearSuite( "Phase 3", phase3_tests );
+    });
+    describe("General",			general_tests.bind( this ) );
+
+    after(async () => {
+	await holochain.destroy();
+    });
+
+});
+
+
 let alice_client;
 let bobby_client;
 let carol_client;
 let david_client;
 let emily_client;
 let felix_client;
+
+let alice_coop_content;
+let bobby_coop_content;
+let carol_coop_content;
+let david_coop_content;
+
+let alice_good_zome;
+let bobby_good_zome;
+let carol_good_zome;
+let david_good_zome;
+
 let group, g1_addr, g1a_addr, g1b_addr;
 let c1, c1_addr, c1a_addr;
 let c2, c2_addr, c2a_addr, c2aa_addr, c2b_addr;
@@ -63,8 +143,87 @@ let c3, c3a, c3_addr, c3a_addr;
 let c4, c4_addr, c4a_addr;
 let c5, c5_addr;
 
-
 function phase1_tests () {
+
+    before(async function () {
+	this.timeout( 30_000 );
+
+        {
+	    const auth			= installations.alice.test.auth;
+	    alice_client		= await client.app( auth.token, "test-alice" );
+
+            alice_coop_content          = alice_client.createZomeInterface(
+                DNA_NAME, COOP_ZOME, CoopContentZomelet
+            ).functions;
+            alice_good_zome             = alice_client.createZomeInterface(
+                DNA_NAME, GOOD_ZOME, BasicUsageZomelet
+            ).functions;
+        }
+
+        {
+	    const auth			= installations.bobby.test.auth;
+	    bobby_client		= await client.app( auth.token, "test-bobby" );
+
+            bobby_coop_content          = bobby_client.createZomeInterface(
+                DNA_NAME, COOP_ZOME, CoopContentZomelet
+            ).functions;
+            bobby_good_zome             = bobby_client.createZomeInterface(
+                DNA_NAME, GOOD_ZOME, BasicUsageZomelet
+            ).functions;
+        }
+
+        {
+	    const auth			= installations.carol.test.auth;
+	    carol_client		= await client.app( auth.token, "test-carol" );
+
+            carol_coop_content          = carol_client.createZomeInterface(
+                DNA_NAME, COOP_ZOME, CoopContentZomelet
+            ).functions;
+            carol_good_zome             = carol_client.createZomeInterface(
+                DNA_NAME, GOOD_ZOME, BasicUsageZomelet
+            ).functions;
+        }
+
+        {
+	    const auth			= installations.david.test.auth;
+	    david_client		= await client.app( auth.token, "test-david" );
+
+            david_coop_content          = david_client.createZomeInterface(
+                DNA_NAME, COOP_ZOME, CoopContentZomelet
+            ).functions;
+            david_good_zome             = david_client.createZomeInterface(
+                DNA_NAME, GOOD_ZOME, BasicUsageZomelet
+            ).functions;
+        }
+
+        {
+	    const auth			= installations.emily.test.auth;
+	    emily_client		= await client.app( auth.token, "test-emily" );
+        }
+
+        {
+	    const auth			= installations.felix.test.auth;
+	    felix_client		= await client.app( auth.token, "test-felix" );
+        }
+
+	{
+	    let whoami			= await alice_coop_content.whoami();
+	    log.normal("Alice whoami: %s", whoami.pubkey.initial );
+	}
+	{
+	    let whoami			= await bobby_coop_content.whoami();
+	    log.normal("Bobby whoami: %s", whoami.pubkey.initial );
+	}
+	{
+	    let whoami			= await carol_coop_content.whoami();
+	    log.normal("Carol whoami: %s", whoami.pubkey.initial );
+	}
+	{
+	    let whoami			= await david_coop_content.whoami();
+	    log.normal("David whoami: %s", whoami.pubkey.initial );
+	}
+    });
+
 
     it("should create group via alice (A1)", async function () {
 	const group_input		= createGroupInput(
@@ -75,104 +234,81 @@ function phase1_tests () {
 	    ],
 	    bobby_client.agent_id, carol_client.agent_id,
 	);
-	g1_addr				= await alice_client.call( DNA_NAME, GOOD_ZOME, "create_group", group_input );
-	log.debug("Group ID: %s", g1_addr );
-
-	// expect( g1_addr		).to.be.a("ActionHash");
-	expect( g1_addr		).to.be.a("Uint8Array");
-	expect( g1_addr		).to.have.length( 39 );
-
-	group				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_group", g1_addr ), GroupStruct );
+	group				= await alice_coop_content.create_group( group_input );
 	log.debug( json.debug( group ) );
     });
 
     it("should create content (C1 + C2) via alice (A1)", async function () {
 	{
-	    const content_input		= createContentInput( alice_client.agent_id, g1_addr, g1_addr );
-	    c1_addr			= await alice_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
-	    log.debug("C1 Address: %s", new ActionHash(c1_addr) );
+	    const content_input		= createContentInput( alice_client.agent_id, group.$id, group.$id );
+	    c1_addr			= await alice_good_zome.create_content( content_input );
+	    log.debug("C1 Address: %s", c1_addr );
 
-	    expect( c1_addr		).to.be.a("Uint8Array");
-	    expect( c1_addr		).to.have.length( 39 );
-
-	    c1				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
-		"group_id": g1_addr,
+	    c1				= await alice_good_zome.get_content({
+		"group_id": group.$id,
 		"content_id": c1_addr,
-	    }), ContentStruct );
+	    });
 	    log.debug( json.debug( c1 ) );
 	}
 	{
-	    const content_input		= createContentInput( alice_client.agent_id, g1_addr, g1_addr );
-	    c2_addr			= await alice_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
-	    log.debug("C2 Address: %s", new ActionHash(c2_addr) );
+	    const content_input		= createContentInput( alice_client.agent_id, group.$id, group.$id );
+	    c2_addr			= await alice_good_zome.create_content( content_input );
+	    log.debug("C2 Address: %s", c2_addr );
 
-	    expect( c2_addr		).to.be.a("Uint8Array");
-	    expect( c2_addr		).to.have.length( 39 );
-
-	    c2				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
-		"group_id": g1_addr,
+	    c2				= await alice_good_zome.get_content({
+		"group_id": group.$id,
 		"content_id": c2_addr,
-	    }), ContentStruct );
+	    });
 	    log.debug( json.debug( c2 ) );
 	}
     });
 
     it("should create content (C3) via carol (A3)", async function () {
 	{
-	    const content_input		= createContentInput( carol_client.agent_id, g1_addr, g1_addr );
-	    c3_addr			= await carol_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
-	    log.debug("C3 Address: %s", new ActionHash(c3_addr) );
-
-	    expect( c3_addr		).to.be.a("Uint8Array");
-	    expect( c3_addr		).to.have.length( 39 );
+	    const content_input		= createContentInput( carol_client.agent_id, group.$id, group.$id );
+	    c3_addr			= await carol_good_zome.create_content( content_input );
+	    log.debug("C3 Address: %s", c3_addr );
 
             await delay();
 
-	    c3				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
-		"group_id": g1_addr,
+	    c3				= await alice_good_zome.get_content({
+		"group_id": group.$id,
 		"content_id": c3_addr,
-	    }), ContentStruct );
+	    });
 	    log.debug( json.debug( c3 ) );
 	}
     });
 
     it("should update content (C1 => C1a) via carol (A3)", async function () {
 	{
-	    c1a_addr			= await carol_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	    c1a_addr			= await carol_good_zome.update_content({
 		"base": c1_addr,
 		"entry": Object.assign( c1, {
 		    "text":		"(updated) " + faker.lorem.sentence(),
 		}),
 	    });
-	    log.debug("C1a Address: %s", new ActionHash(c1a_addr) );
-
-	    expect( c1a_addr		).to.be.a("Uint8Array");
-	    expect( c1a_addr		).to.have.length( 39 );
+	    log.debug("C1a Address: %s", c1a_addr );
 	}
     });
 
     it("should update content (C2 => C2a) via alice (A1)", async function () {
 	{
-	    c2a_addr			= await alice_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	    c2a_addr			= await alice_good_zome.update_content({
 		"base": c2_addr,
 		"entry": Object.assign( c2, {
 		    "text":		"(updated) " + faker.lorem.sentence(),
 		}),
 	    });
-	    log.debug("C2a Address: %s", new ActionHash(c2a_addr) );
-
-	    expect( c2a_addr		).to.be.a("Uint8Array");
-	    expect( c2a_addr		).to.have.length( 39 );
+	    log.debug("C2a Address: %s", c2a_addr );
 	}
     });
 
     it("should get group content and find: C1a, C2a, C3", async function () {
 	const targets			= new Set(
-	    (await david_client.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
-		"group_id": g1_addr,
+	    (await david_good_zome.get_group_content({
+		"group_id": group.$id,
 	    }))
-		.map( pair => pair[0][1] )
-		.map( addr => String(new HoloHash(addr)) )
+		.map( pair => String( pair[0][1] ) )
 	);
 	log.debug("Group content targets: %s", targets );
 
@@ -193,8 +329,8 @@ function phase1_checks_tests () {
     // Static
     it("should reject group update because it requires counter-signing", async function () {
 	await expect_reject( async () => {
-	    await alice_client.call( DNA_NAME, GOOD_ZOME, "update_group", {
-		"base": g1_addr,
+            await alice_coop_content.update_group({
+		"base": group.$id,
 		"entry": Object.assign({}, group, {
 		    "admins": [ alice_client.agent_id ],
 		}),
@@ -223,7 +359,7 @@ function phase1_checks_tests () {
     it("should reject content link because author does not match auth anchor agent", async function () {
 	await expect_reject( async () => {
 	    await carol_client.call( DNA_NAME, EVIL_ZOME, "invalid_auth_anchor_link", {
-		"group_id": g1_addr,
+		"group_id": group.$id,
 		"anchor_agent": alice_client.agent_id,
 		"target": new ActionHash( crypto.randomBytes(32) ),
 	    });
@@ -232,7 +368,7 @@ function phase1_checks_tests () {
 
     it("should reject content update because the author group cannot be changed", async function () {
 	await expect_reject( async () => {
-	    await alice_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	    await alice_good_zome.update_content({
 		"base": c1_addr,
 		"entry": Object.assign({}, c1, {
 		    "group_ref": {
@@ -245,17 +381,17 @@ function phase1_checks_tests () {
     });
 
     it("should reject content create because author group ID/revision are not related", async function () {
-	const g2_id			= await bobby_client.call( DNA_NAME, GOOD_ZOME, "create_group", createGroupInput(
+	const group2			= await bobby_coop_content.create_group( createGroupInput(
 	    [ bobby_client.agent_id ],
 	    carol_client.agent_id,
 	));
 	await expect_reject( async () => {
-	    await bobby_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	    await bobby_good_zome.update_content({
 		"base": c1_addr,
 		"entry": Object.assign({}, c1, {
 		    "group_ref": {
-			"id": g1_addr,
-			"rev": g2_id,
+			"id": group.$id,
+			"rev": group2.$action,
 		    },
 		}),
 	    });
@@ -265,8 +401,8 @@ function phase1_checks_tests () {
     it("should reject auth anchor link because agent (A4) is not in the group's contributors", async function () {
 	await expect_reject( async () => {
 	    await alice_client.call( DNA_NAME, EVIL_ZOME, "invalid_group_auth_link", {
-		"group_id": g1_addr,
-		"group_rev": g1_addr,
+		"group_id": group.$id,
+		"group_rev": group.$id,
 		"anchor_agent": david_client.agent_id,
 	    });
 	}, "contributions anchor must match a contributor in the group base" );
@@ -275,8 +411,8 @@ function phase1_checks_tests () {
     // Dynamic
     it("should reject group update because agent (A3) is not an admin", async function () {
 	await expect_reject( async () => {
-	    await carol_client.call( DNA_NAME, GOOD_ZOME, "update_group", {
-		"base": g1_addr,
+            await carol_coop_content.update_group({
+		"base": group.$id,
 		"entry": group,
 	    });
 	}, "group can only be done by an admin" );
@@ -284,7 +420,7 @@ function phase1_checks_tests () {
 
     it("should reject content update because agent is not in the group's contributors", async function () {
 	await expect_reject( async () => {
-	    await david_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	    await david_good_zome.update_content({
 		"base": c1_addr,
 		"entry": Object.assign({}, c1, {
 		    "text":		"(updated) " + faker.lorem.sentence(),
@@ -296,8 +432,8 @@ function phase1_checks_tests () {
     it("should reject auth anchor link because agent (A3) is not an admin", async function () {
 	await expect_reject( async () => {
 	    await carol_client.call( DNA_NAME, EVIL_ZOME, "invalid_group_auth_link", {
-		"group_id": g1_addr,
-		"group_rev": g1_addr,
+		"group_id": group.$id,
+		"group_rev": group.$id,
 		"anchor_agent": alice_client.agent_id,
 	    });
 	}, "author of a group auth link must be an admin of the base group" );
@@ -313,94 +449,77 @@ function phase2_tests () {
 	    bobby_client.agent_id, david_client.agent_id,
 	];
 
-	const addr = g1a_addr		= await alice_client.call( DNA_NAME, GOOD_ZOME, "update_group", {
-	    "base": g1_addr,
+        group                           = await alice_coop_content.update_group({
+	    "base": group.$id,
 	    "entry": group,
 	});
-	log.debug("New Group address: %s", addr );
-
-	expect( addr			).to.be.a("Uint8Array");
-	expect( addr			).to.have.length( 39 );
-
-	group				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_group", g1_addr ), GroupStruct );
+        g1a_addr                        = group.$action;
+	log.debug("New Group address: %s", g1a_addr );
 	log.debug( json.debug( group ) );
     });
 
     it("should A3 update content (C2 -> C2aa)", async function () {
-	c2aa_addr			= await carol_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	c2aa_addr			= await carol_good_zome.update_content({
 	    "base": c2_addr,
 	    "entry": Object.assign( c2, {
 		"text":	"(updated) " + faker.lorem.sentence(),
 	    }),
 	});
-	log.debug("C2aa Address: %s", new ActionHash(c2aa_addr) );
-
-	expect( c2aa_addr		).to.be.a("Uint8Array");
-	expect( c2aa_addr		).to.have.length( 39 );
+	log.debug("C2aa Address: %s", c2aa_addr );
     });
 
     it("should A3 update content (C3 -> C3a)", async function () {
 	c3a				= {};
-	c3a_addr			= await carol_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	c3a_addr			= await carol_good_zome.update_content({
 	    "base": c3_addr,
 	    "entry": Object.assign( c3a, c3, {
 		"text":	"(updated) " + faker.lorem.sentence(),
 	    }),
 	});
-	log.debug("C3a Address: %s", new ActionHash(c3a_addr) );
-
-	expect( c3a_addr		).to.be.a("Uint8Array");
-	expect( c3a_addr		).to.have.length( 39 );
+	log.debug("C3a Address: %s", c3a_addr );
     });
 
     it("should A4 update content (C2a -> C2b)", async function () {
-	c2b_addr			= await david_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	c2b_addr			= await david_good_zome.update_content({
 	    "base": c2a_addr,
 	    "entry": Object.assign( c2, {
 		"text":	"(updated) " + faker.lorem.sentence(),
 		"group_ref": {
-		    "id": g1_addr,
+		    "id": group.$id,
 		    "rev": g1a_addr,
 		},
 	    }),
 	});
-	log.debug("C2b Address: %s", new ActionHash(c2b_addr) );
+	log.debug("C2b Address: %s", c2b_addr );
 
 	let entry			= await carol_client.call( DNA_NAME, GEN_ZOME, "fetch_entry", c2b_addr );
 	let decoded			= msgpack.decode( entry.entry );
 
 	c2				= intoStruct( decoded, ContentStruct );
-
-	expect( c2b_addr		).to.be.a("Uint8Array");
-	expect( c2b_addr		).to.have.length( 39 );
     });
 
     it("should A4 create content (C4)", async function () {
 	{
-	    const content_input		= createContentInput( david_client.agent_id, g1_addr, g1a_addr );
-	    c4_addr			= await david_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
-	    log.debug("C4 Address: %s", new ActionHash(c4_addr) );
-
-	    expect( c4_addr		).to.be.a("Uint8Array");
-	    expect( c4_addr		).to.have.length( 39 );
+	    const content_input		= createContentInput( david_client.agent_id, group.$id, g1a_addr );
+	    c4_addr			= await david_good_zome.create_content( content_input );
+	    log.debug("C4 Address: %s", c4_addr );
 
             await delay();
 
-	    c4				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
-		"group_id": g1_addr,
+	    c4				= await alice_good_zome.get_content({
+		"group_id": group.$id,
 		"content_id": c4_addr,
-	    }), ContentStruct );
+	    });
 	    log.debug( json.debug( c4 ) );
 	}
     });
 
     it("should get group content and find: C1a, C2b, C3, C4", async function () {
 	const targets			= new Set(
-	    (await david_client.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
-		"group_id": g1_addr,
+	    (await david_good_zome.get_group_content({
+		"group_id": group.$id,
 	    }))
-		.map( pair => pair[0][1] )
-		.map( addr => String(new HoloHash(addr)) )
+		.map( pair => String( pair[0][1] ) )
 	);
 	log.debug("Group content targets: %s", targets );
 
@@ -416,11 +535,10 @@ function phase2_tests () {
 
     it("should get content (C3) latest revision (C3)", async function () {
 	{
-	    let result			= await carol_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
-		"group_id": g1_addr,
+	    let content			= await carol_good_zome.get_content({
+		"group_id": group.$id,
 		"content_id": c3_addr,
 	    });
-	    let content			= intoStruct( result, ContentStruct );
 
 	    expect( c3			).to.deep.equal( content );
 	}
@@ -446,7 +564,7 @@ function phase2_checks_tests () {
     it("should reject auth anchor link because agent (A3 + A4) is not an admin", async function () {
 	await expect_reject( async () => {
 	    await carol_client.call( DNA_NAME, EVIL_ZOME, "invalid_group_auth_link", {
-		"group_id": g1_addr,
+		"group_id": group.$id,
 		"group_rev": g1a_addr,
 		"anchor_agent": alice_client.agent_id,
 	    });
@@ -454,7 +572,7 @@ function phase2_checks_tests () {
 
 	await expect_reject( async () => {
 	    await david_client.call( DNA_NAME, EVIL_ZOME, "invalid_group_auth_link", {
-		"group_id": g1_addr,
+		"group_id": group.$id,
 		"group_rev": g1a_addr,
 		"anchor_agent": alice_client.agent_id,
 	    });
@@ -463,13 +581,13 @@ function phase2_checks_tests () {
 
     it("should reject content update because agent (A4) did not update the author group revision", async function () {
 	await expect_reject( async () => {
-	    await david_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	    await david_good_zome.update_content({
 		"base": c2a_addr,
 		"entry": Object.assign( {}, c2, {
 		    "text":	"(updated) " + faker.lorem.sentence(),
 		    "group_ref": {
-			"id": g1_addr,
-			"rev": g1_addr,
+			"id": group.$id,
+			"rev": group.$id,
 		    },
 		}),
 	    });
@@ -478,12 +596,12 @@ function phase2_checks_tests () {
 
     it("should reject content update because agent (A3) is not a contributor in the author group revision", async function () {
 	await expect_reject( async () => {
-	    await carol_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	    await carol_good_zome.update_content({
 		"base": c2_addr,
 		"entry": Object.assign( {}, c2, {
 		    "text":	"(updated) " + faker.lorem.sentence(),
 		    "group_ref": {
-			"id": g1_addr,
+			"id": group.$id,
 			"rev": g1a_addr,
 		    },
 		}),
@@ -501,62 +619,49 @@ function phase3_tests () {
 	    bobby_client.agent_id, carol_client.agent_id, david_client.agent_id,
 	];
 
-	const addr = g1b_addr		= await alice_client.call( DNA_NAME, GOOD_ZOME, "update_group", {
+        group                           = await alice_coop_content.update_group({
 	    "base": g1a_addr,
 	    "entry": group,
 	});
-	log.debug("New Group address: %s", addr );
-
-	expect( addr			).to.be.a("Uint8Array");
-	expect( addr			).to.have.length( 39 );
-
-	group				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_group", g1_addr ), GroupStruct );
+        g1b_addr                        = group.$action;
+	log.debug("New Group address: %s", g1b_addr );
 	log.debug( json.debug( group ) );
     });
 
     it("should A3 update content (C4 -> C4a)", async function () {
-	c4a_addr			= await carol_client.call( DNA_NAME, GOOD_ZOME, "update_content", {
+	c4a_addr			= await carol_good_zome.update_content({
 	    "base": c4_addr,
 	    "entry": Object.assign( c4, {
 		"text":	"(updated) " + faker.lorem.sentence(),
 		"group_ref": {
-		    "id": g1_addr,
+		    "id": group.$id,
 		    "rev": g1b_addr,
 		},
 	    }),
 	});
-	log.debug("C4a Address: %s", new ActionHash(c4a_addr) );
-
-	expect( c4a_addr		).to.be.a("Uint8Array");
-	expect( c4a_addr		).to.have.length( 39 );
+	log.debug("C4a Address: %s", c4a_addr );
     });
 
     it("should create content (C5) via carol (A3)", async function () {
 	{
-	    const content_input		= createContentInput( carol_client.agent_id, g1_addr, g1b_addr );
-	    c5_addr			= await carol_client.call( DNA_NAME, GOOD_ZOME, "create_content", content_input );
-	    log.debug("C5 Address: %s", new ActionHash(c5_addr) );
-
-	    expect( c5_addr		).to.be.a("Uint8Array");
-	    expect( c5_addr		).to.have.length( 39 );
+	    const content_input		= createContentInput( carol_client.agent_id, group.$id, g1b_addr );
+	    c5_addr			= await carol_good_zome.create_content( content_input );
+	    log.debug("C5 Address: %s", c5_addr );
 
             await delay();
 
-	    c5				= intoStruct( await alice_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
-		"group_id": g1_addr,
+	    c5				= await alice_good_zome.get_content({
+		"group_id": group.$id,
 		"content_id": c5_addr,
-	    }), ContentStruct );
+	    });
 	    log.debug( json.debug( c5 ) );
 	}
     });
 
     it("should get group content and find: C1a, C2b, C3a, C4a, C5", async function () {
-	const contents			= (await david_client.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
-	    "group_id": g1_addr,
-	})).map( ([[origin,latest], content]) => [
-	    [ new HoloHash(origin), new HoloHash(latest) ],
-	    intoStruct( content, ContentStruct ),
-	]);
+	const contents			= await david_good_zome.get_group_content({
+	    "group_id": group.$id,
+	});
 	const targets			= new Set( contents.map( pair => String(pair[0][1]) ) );
 	log.debug("Group content targets: %s", targets );
 
@@ -573,12 +678,11 @@ function phase3_tests () {
 
     it("should get group content using full trace and find: C1a, C2b, C3a, C4a, C5", async function () {
 	const targets			= new Set(
-	    (await david_client.call( DNA_NAME, GOOD_ZOME, "get_group_content", {
-		"group_id": g1_addr,
+	    (await david_good_zome.get_group_content({
+		"group_id": group.$id,
 		"full_trace": true,
 	    }))
-		.map( pair => pair[0][1] )
-		.map( addr => String(new HoloHash(addr)) )
+		.map( pair => String( pair[0][1] ) )
 	);
 	log.debug("Group content targets: %s", targets );
 
@@ -595,11 +699,10 @@ function phase3_tests () {
 
     it("should get content (C3) latest revision (C3a)", async function () {
 	{
-	    let result			= await carol_client.call( DNA_NAME, GOOD_ZOME, "get_content", {
-		"group_id": g1_addr,
+	    let content			= await carol_good_zome.get_content({
+		"group_id": group.$id,
 		"content_id": c3_addr,
 	    });
-	    let content			= intoStruct( result, ContentStruct );
 
 	    expect( c3a			).to.deep.equal( content );
 	}
@@ -623,8 +726,8 @@ function phase3_checks_tests () {
     it("should reject auth anchor link delete", async function () {
 	await expect_reject( async () => {
 	    await alice_client.call( DNA_NAME, EVIL_ZOME, "delete_group_auth_link", {
-		"group_id": g1_addr,
-		"group_rev": g1_addr,
+		"group_id": group.$id,
+		"group_rev": group.$id,
 		"anchor_agent": alice_client.agent_id,
 	    });
 	}, "group auth links cannot be deleted" );
@@ -634,7 +737,7 @@ function phase3_checks_tests () {
 	await expect_reject( async () => {
 	    await alice_client.call( DNA_NAME, COOP_ZOME, "delete_group_auth_anchor_content_links", [
 		{
-		    "group_id": g1_addr,
+		    "group_id": group.$id,
 		    "author": carol_client.agent_id,
 		},
 		c3_addr,
@@ -710,84 +813,14 @@ function general_tests () {
     //
     it("should fail because record does not exist", async function () {
 	await expect_reject( async () => {
-	    await alice_client.call( DNA_NAME, GOOD_ZOME, "get_group", new ActionHash(crypto.randomBytes(32)) );
-	}, "Record not found" );
+            await alice_coop_content.get_group( new ActionHash(crypto.randomBytes(32)) );
+	}, "Failed to get Record" );
     });
 
     it("should reject group delete", async function () {
 	await expect_reject( async () => {
-	    await alice_client.call( DNA_NAME, EVIL_ZOME, "delete_group", g1_addr );
+	    await alice_client.call( DNA_NAME, EVIL_ZOME, "delete_group", group.$id );
 	}, "cannot be deleted" );
     });
 
 }
-
-
-describe("Model DNA", function () {
-    const holochain			= new Holochain({
-	"timeout": 60_000,
-	"default_stdout_loggers": log.level_rank > 3,
-    });
-
-    before(async function () {
-	this.timeout( 300_000 );
-
-	const installations		= await holochain.install([
-	    "alice", // admin
-	    "bobby", // constant member
-	    "carol", // member removed later
-	    "david", // member added later
-	    "emily", // admin
-	    "felix", // admin removed later
-	], [
-	    {
-		"app_name": "test",
-		"bundle": {
-		    [DNA_NAME]:		TEST_DNA_PATH,
-		},
-	    },
-	]);
-
-	app_port			= await holochain.ensureAppPort();
-
-	client				= new AppInterfaceClient( app_port, {
-	    "logging": process.env.LOG_LEVEL || "fatal",
-	});
-
-	const alice_token		= installations.alice.test.auth.token;
-	alice_client			= await client.app( alice_token );
-
-	const bobby_token		= installations.bobby.test.auth.token;
-	bobby_client			= await client.app( bobby_token );
-
-	const carol_token		= installations.carol.test.auth.token;
-	carol_client			= await client.app( carol_token );
-
-	const david_token		= installations.david.test.auth.token;
-	david_client			= await client.app( david_token );
-
-	const emily_token		= installations.emily.test.auth.token;
-	emily_client			= await client.app( emily_token );
-
-	const felix_token		= installations.felix.test.auth.token;
-	felix_client			= await client.app( felix_token );
-
-	// Must call whoami on each cell to ensure that init has finished.
-	{
-	    let whoami			= await alice_client.call( DNA_NAME, GOOD_ZOME, "whoami", null, 300_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
-    });
-
-    describe("Group", function () {
-	linearSuite( "Phase 1", phase1_tests );
-	linearSuite( "Phase 2", phase2_tests );
-	linearSuite( "Phase 3", phase3_tests );
-    });
-    describe("General",			general_tests.bind( this ) );
-
-    after(async () => {
-	await holochain.destroy();
-    });
-
-});
