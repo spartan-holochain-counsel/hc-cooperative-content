@@ -10,15 +10,14 @@ import msgpack				from '@msgpack/msgpack';
 import json				from '@whi/json';
 import { AgentPubKey, HoloHash,
 	 ActionHash, EntryHash }	from '@spartan-hc/holo-hash';
-import HolochainBackdrop		from '@spartan-hc/holochain-backdrop';
-const { Holochain }			= HolochainBackdrop;
+import { Holochain }                    from '@spartan-hc/holochain-backdrop';
+
+import {
+    CoopContentZomelet,
+}					from '@spartan-hc/coop-content-zomelets';
 import {
     AppInterfaceClient,
 }					from '@spartan-hc/app-interface-client';
-import {
-    intoStruct,
-    OptionType, VecType, MapType,
-}					from '@whi/into-struct';
 
 // const why				= require('why-is-node-running');
 import {
@@ -27,11 +26,7 @@ import {
     createGroupInput,
     createContentInput,
 }					from '../utils.js';
-import {
-    EntryCreationActionStruct,
-    GroupStruct,
-    ContentStruct,
-}					from './types.js';
+
 
 const delay				= (n) => new Promise(f => setTimeout(f, n));
 const __filename			= new URL(import.meta.url).pathname;
@@ -43,33 +38,7 @@ const DNA_NAME				= "test_dna";
 const GEN_ZOME				= "general_csr";
 const COOP_ZOME				= "coop_content_csr";
 
-
-let app_port;
-let client;
-let alice_client;
-let bobby_client;
-let group, g1_addr;
-
-
-function basic_tests () {
-
-    it("should create group via alice (A1)", async function () {
-	const group_input		= createGroupInput(
-	    [ alice_client.agent_id ],
-	    bobby_client.agent_id,
-	);
-	g1_addr				= await alice_client.call( DNA_NAME, COOP_ZOME, "create_group", group_input );
-	log.debug("Group ID: %s", g1_addr );
-
-	expect( g1_addr		).to.be.a("Uint8Array");
-	expect( g1_addr		).to.have.length( 39 );
-
-	group				= intoStruct( await alice_client.call( DNA_NAME, COOP_ZOME, "get_group", g1_addr ), GroupStruct );
-	log.debug( json.debug( group ) );
-    });
-
-}
-
+let client, installations;
 
 describe("General DNA", function () {
     const holochain			= new Holochain({
@@ -80,7 +49,7 @@ describe("General DNA", function () {
     before(async function () {
 	this.timeout( 300_000 );
 
-	const installations		= await holochain.install([
+	installations                   = await holochain.install([
 	    "alice",
 	    "bobby",
 	], [
@@ -92,23 +61,11 @@ describe("General DNA", function () {
 	    },
 	]);
 
-	app_port			= await holochain.ensureAppPort();
+	const app_port			= await holochain.ensureAppPort();
 
 	client				= new AppInterfaceClient( app_port, {
 	    "logging": process.env.LOG_LEVEL || "fatal",
 	});
-
-	const alice_token		= installations.alice.test.auth.token;
-	alice_client			= await client.app( alice_token );
-
-	const bobby_token		= installations.bobby.test.auth.token;
-	bobby_client			= await client.app( bobby_token );
-
-	// Must call whoami on each cell to ensure that init has finished.
-	{
-	    let whoami			= await alice_client.call( DNA_NAME, GEN_ZOME, "whoami", null, 300_000 );
-	    log.normal("Alice whoami: %s", String(new HoloHash( whoami.agent_initial_pubkey )) );
-	}
     });
 
     describe("Group", function () {
@@ -120,3 +77,57 @@ describe("General DNA", function () {
     });
 
 });
+
+
+let alice_client;
+let bobby_client;
+
+let alice_coop_content;
+let bobby_coop_content;
+
+let group, g1_addr;
+
+function basic_tests () {
+
+    before(async function () {
+	this.timeout( 30_000 );
+
+        {
+	    const auth			= installations.alice.test.auth;
+	    alice_client		= await client.app( auth.token, "test-alice" );
+
+            alice_coop_content          = alice_client.createZomeInterface(
+                DNA_NAME, "coop_content_csr", CoopContentZomelet
+            ).functions;
+        }
+
+        {
+	    const auth			= installations.bobby.test.auth;
+	    bobby_client		= await client.app( auth.token, "test-bobby" );
+
+            bobby_coop_content          = bobby_client.createZomeInterface(
+                DNA_NAME, "coop_content_csr", CoopContentZomelet
+            ).functions;
+        }
+
+	{
+	    let whoami			= await alice_coop_content.whoami();
+	    log.normal("Alice whoami: %s", whoami.pubkey.initial );
+	}
+	{
+	    let whoami			= await bobby_coop_content.whoami();
+	    log.normal("Bobby whoami: %s", whoami.pubkey.initial );
+	}
+    });
+
+
+    it("should create group via alice (A1)", async function () {
+	const group_input		= createGroupInput(
+	    [ alice_client.agent_id ],
+	    bobby_client.agent_id,
+	);
+	group				= await alice_coop_content.create_group( group_input );
+	log.debug( json.debug( group ) );
+    });
+
+}

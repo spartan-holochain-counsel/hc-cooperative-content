@@ -87,10 +87,32 @@ fn whoami(_: ()) -> ExternResult<AgentInfo> {
 }
 
 
+/// The context and content of a specific entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Entity<T> {
+    /// The address of the original create action
+    pub id: ActionHash,
+
+    /// The create/update action of the current entry
+    pub action: ActionHash,
+
+    /// The address of the current entry
+    pub address: EntryHash,
+
+    #[serde(rename = "type")]
+    /// An identifier for the content's type and structure
+    pub ctype: String,
+
+    /// The entity's current value
+    pub content: T,
+}
+
+
 #[hdk_extern]
-pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
+pub fn create_group(group: GroupEntry) -> ExternResult<Entity<GroupEntry>> {
     debug!("Creating new group entry: {:#?}", group );
     let action_hash = create_entry( group.to_input() )?;
+    let entry_hash = hash_entry( &group )?;
     let agent_id = agent_id()?;
 
     for pubkey in group.contributors() {
@@ -103,18 +125,25 @@ pub fn create_group(group: GroupEntry) -> ExternResult<ActionHash> {
 
     create_link( agent_id, action_hash.to_owned(), LinkTypes::Group, () )?;
 
-    Ok( action_hash )
+    Ok(Entity {
+        id: action_hash.clone(),
+        action: action_hash,
+        address: entry_hash,
+        ctype: "group".to_string(),
+        content: group,
+    })
 }
 
 
 #[hdk_extern]
-pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionHash> {
+pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<Entity<GroupEntry>> {
     debug!("Update group action: {}", input.base );
     let group_id = trace_origin_root( &input.base )?.0;
     let prev_group : GroupEntry = must_get( &input.base )?.try_into()?;
     let contributors_diff = prev_group.contributors_diff( &input.entry );
 
     let action_hash = update_entry( input.base.to_owned(), input.entry.to_input() )?;
+    let entry_hash = hash_entry( &input.entry )?;
 
     let archive_links = get_links(
         create_link_input(
@@ -178,17 +207,39 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<ActionH
         create_link( action_hash.to_owned(), anchor_hash, LinkTypes::GroupAuth, () )?;
     }
 
-    Ok( action_hash )
+    Ok(Entity {
+        id: group_id,
+        action: action_hash,
+        address: entry_hash,
+        ctype: "group".to_string(),
+        content: input.entry,
+    })
 }
 
 
 #[hdk_extern]
-pub fn get_group(group_id: ActionHash) -> ExternResult<GroupEntry> {
+pub fn get_group(group_id: ActionHash) -> ExternResult<Entity<GroupEntry>> {
+    if group_id != trace_origin_root( &group_id )?.0 {
+        Err(guest_error!(format!(
+            "Action hash '{}' is not an ID",
+            group_id,
+        )))?
+    }
     debug!("Get latest group entry: {}", group_id );
     let latest_addr = follow_evolutions( &group_id )?.last().unwrap().to_owned();
     let record = must_get( &latest_addr )?;
 
-    Ok( GroupEntry::try_from_record( &record )? )
+    let group = GroupEntry::try_from_record( &record )?;
+
+    Ok(Entity {
+        id: group_id,
+        action: record.action_address().to_owned(),
+        address: record.action().entry_hash()
+            .ok_or(guest_error!("Record does not have an entry".to_string()))?
+            .to_owned(),
+        ctype: "group".to_string(),
+        content: group,
+    })
 }
 
 
