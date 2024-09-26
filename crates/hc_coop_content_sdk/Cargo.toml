@@ -4,7 +4,7 @@ version = "0.7.0"
 authors = ["Matthew Brisebois <matthew.brisebois@holo.host>"]
 edition = "2021"
 license = "CAL-1.0"
-repository = "https://github.com/mjbrisebois/hc-cooperative-content"
+repository = "https://github.com/spartan-holochain-counsel/hc-cooperative-content"
 description = "Standard development kit for the 'Cooperative Content' Holochain zomes"
 readme = "README.md"
 

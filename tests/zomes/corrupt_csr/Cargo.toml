@@ -9,5 +9,5 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 coop_content = { path = "../../../zomes/coop_content" }
-hc_coop_content_sdk = {path = "../../../coop_content_sdk"}
+hc_coop_content_sdk = { path = "../../../crates/hc_coop_content_sdk" }
 serde = "1"

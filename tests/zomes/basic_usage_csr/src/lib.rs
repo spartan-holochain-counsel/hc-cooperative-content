@@ -17,6 +17,7 @@ use hdk_extensions::{
 };
 use test_types::{
     ContentEntry,
+    CommentEntry,
 };
 use coop_content_sdk::{
     GroupEntry,
@@ -88,19 +89,41 @@ pub fn get_content(input: GetGroupContentInput) -> ExternResult<ContentEntry> {
 }
 
 
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "type")]
+pub enum ContentTypes {
+    Content(ContentEntry),
+    Comment(CommentEntry),
+    Unknown(Record),
+}
+
+impl TryInto<ContentTypes> for Record {
+    type Error = WasmError;
+
+    fn try_into(self) -> ExternResult<ContentTypes> {
+        ContentEntry::try_from_record(&self).map(ContentTypes::Content)
+            .or_else(|_| CommentEntry::try_from_record(&self).map(ContentTypes::Comment) )
+            .or_else(|_| Ok(ContentTypes::Unknown(self)) )
+    }
+}
+
 #[hdk_extern]
-pub fn get_group_content(input: GetAllGroupContentInput) -> ExternResult<Vec<Entity<ContentEntry>>> {
+pub fn get_group_content(input: GetAllGroupContentInput) -> ExternResult<Vec<Entity<ContentTypes>>> {
     debug!("Get all latest content entry: {:#?}", input );
     let contents = get_all_group_content_latest!({
         group_id: input.group_id,
+        content_type: input.content_type,
+        content_base: input.content_base,
     })?.into_iter()
         .filter_map(|(origin, latest)| {
             let origin_addr = origin.into_action_hash()?;
             let latest_addr = latest.into_action_hash()?;
             let record = must_get( &latest_addr ).ok()?;
+
             Some(Entity(
                 MorphAddr(origin_addr, latest_addr),
-                ContentEntry::try_from_record( &record ).ok()?
+                record.try_into().ok()?
             ))
         })
         .collect();
@@ -117,6 +140,8 @@ pub fn create_content(content: ContentEntry) -> ExternResult<ActionHash> {
     register_content_to_group!({
         entry: content,
         target: action_hash.clone(),
+        content_type: String::from("content"),
+        content_base: None,
     })?;
 
     Ok( action_hash )
@@ -138,6 +163,24 @@ pub fn update_content(input: UpdateInput) -> ExternResult<ActionHash> {
     register_content_update_to_group!({
         entry: input.entry,
         target: action_hash.clone(),
+    })?;
+
+    Ok( action_hash )
+}
+
+
+#[hdk_extern]
+pub fn create_comment(comment: CommentEntry) -> ExternResult<ActionHash> {
+    debug!("Creating new comment entry: {:#?}", comment );
+    let action_hash = create_entry( comment.to_input() )?;
+    let content_base = comment.parent_comment.clone()
+        .map( |base| format!("{}", base ) );
+
+    register_content_to_group!({
+        entry: comment,
+        target: action_hash.clone(),
+        content_type: String::from("comment"),
+        content_base,
     })?;
 
     Ok( action_hash )

@@ -9,5 +9,5 @@ name = "test_types"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-hc_coop_content_sdk = { path = "../../coop_content_sdk" }
+hc_coop_content_sdk = { path = "../../crates/hc_coop_content_sdk" }
 serde = "1"

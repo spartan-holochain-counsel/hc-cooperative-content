@@ -33,12 +33,9 @@ import {
 }					from '../utils.js';
 import {
     EntryCreationActionStruct,
-    GroupStruct,
-    ContentStruct,
-}					from './types.js';
-import {
+    ContentEntry,
     BasicUsageZomelet,
-}					from '../test_zomelets.js';
+}					from '../types.js';
 
 
 const __filename			= new URL(import.meta.url).pathname;
@@ -240,10 +237,9 @@ function phase1_tests () {
 
     it("should create content (C1 + C2) via alice (A1)", async function () {
 	{
-	    const content_input		= createContentInput( alice_client.agent_id, group.$id, group.$id );
+	    const content_input		= createContentInput( group.$id, group.$id );
 	    c1_addr			= await alice_good_zome.create_content( content_input );
 	    log.debug("C1 Address: %s", c1_addr );
-
 	    c1				= await alice_good_zome.get_content({
 		"group_id": group.$id,
 		"content_id": c1_addr,
@@ -251,10 +247,9 @@ function phase1_tests () {
 	    log.debug( json.debug( c1 ) );
 	}
 	{
-	    const content_input		= createContentInput( alice_client.agent_id, group.$id, group.$id );
+	    const content_input		= createContentInput( group.$id, group.$id );
 	    c2_addr			= await alice_good_zome.create_content( content_input );
 	    log.debug("C2 Address: %s", c2_addr );
-
 	    c2				= await alice_good_zome.get_content({
 		"group_id": group.$id,
 		"content_id": c2_addr,
@@ -265,7 +260,7 @@ function phase1_tests () {
 
     it("should create content (C3) via carol (A3)", async function () {
 	{
-	    const content_input		= createContentInput( carol_client.agent_id, group.$id, group.$id );
+	    const content_input		= createContentInput( group.$id, group.$id );
 	    c3_addr			= await carol_good_zome.create_content( content_input );
 	    log.debug("C3 Address: %s", c3_addr );
 
@@ -495,12 +490,12 @@ function phase2_tests () {
 	let entry			= await carol_client.call( DNA_NAME, GEN_ZOME, "fetch_entry", c2b_addr );
 	let decoded			= msgpack.decode( entry.entry );
 
-	c2				= intoStruct( decoded, ContentStruct );
+	c2				= ContentEntry( decoded );
     });
 
     it("should A4 create content (C4)", async function () {
 	{
-	    const content_input		= createContentInput( david_client.agent_id, group.$id, g1a_addr );
+	    const content_input		= createContentInput( group.$id, g1a_addr );
 	    c4_addr			= await david_good_zome.create_content( content_input );
 	    log.debug("C4 Address: %s", c4_addr );
 
@@ -644,7 +639,7 @@ function phase3_tests () {
 
     it("should create content (C5) via carol (A3)", async function () {
 	{
-	    const content_input		= createContentInput( carol_client.agent_id, group.$id, g1b_addr );
+	    const content_input		= createContentInput( group.$id, g1b_addr );
 	    c5_addr			= await carol_good_zome.create_content( content_input );
 	    log.debug("C5 Address: %s", c5_addr );
 

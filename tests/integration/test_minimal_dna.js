@@ -24,7 +24,6 @@ import {
     expect_reject,
     linearSuite,
     createGroupInput,
-    createContentInput,
 }					from '../utils.js';
 
 
@@ -148,7 +147,7 @@ function basic_tests () {
     });
 
     it("should create content link", async function () {
-        await alice_coop_content.create_content_link( {
+        await alice_coop_content.create_content_link({
             "group_id": group.$id,
             "content_target": c1_addr,
         });

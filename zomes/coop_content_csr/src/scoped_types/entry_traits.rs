@@ -7,7 +7,7 @@ pub trait GroupLinks {
 
 pub trait ContributionsLinks {
     fn base_hash(&self) -> ExternResult<EntryHash>;
-    fn create_targets(&self) -> ExternResult<Vec<AnyLinkableHash>>;
+    fn create_targets(&self, content_type: Option<String>, content_base: Option<String>) -> ExternResult<Vec<AnyLinkableHash>>;
     fn update_links(&self) -> ExternResult<Vec<Link>>;
     fn update_targets(&self) -> ExternResult<Vec<AnyLinkableHash>>;
     fn shortcuts(&self) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash, AnyLinkableHash)>>;
@@ -16,7 +16,7 @@ pub trait ContributionsLinks {
 
 pub trait ArchivedContributionsLinks {
     fn base_hash(&self) -> ExternResult<EntryHash>;
-    fn create_targets(&self) -> ExternResult<Vec<AnyLinkableHash>>;
+    fn create_targets(&self, content_type: Option<String>, content_base: Option<String>) -> ExternResult<Vec<AnyLinkableHash>>;
     fn update_links(&self) -> ExternResult<Vec<Link>>;
     fn update_targets(&self) -> ExternResult<Vec<AnyLinkableHash>>;
     fn shortcuts(&self) -> ExternResult<Vec<(AnyLinkableHash, AnyLinkableHash, AnyLinkableHash)>>;
