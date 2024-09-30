@@ -89,21 +89,21 @@ npm-use-backdrop-%:
 
 preview-types-crate:
 	DEBUG_LEVEL=debug make -s test
-	cd coop_content_types; cargo publish --dry-run --allow-dirty
-	touch coop_content_types/src/lib.rs
+	cargo publish --dry-run --allow-dirty -p hc_coop_content_types
+	touch crates/hc_coop_content_types/src/lib.rs
 publish-types-crate:		.cargo/credentials
 	DEBUG_LEVEL=debug make -s test
-	cd coop_content_types; cargo publish
-	touch coop_content_types/src/lib.rs
+	cargo publish -p hc_coop_content_types
+	touch crates/hc_coop_content_types/src/lib.rs
 
 preview-sdk-crate:
 	DEBUG_LEVEL=debug make -s test
-	cd coop_content_sdk; cargo publish --dry-run --allow-dirty
-	touch coop_content_sdk/src/lib.rs
+	cargo publish --dry-run --allow-dirty -p hc_coop_content_sdk
+	touch crates/hc_coop_content_sdk/src/lib.rs
 publish-sdk-crate:		.cargo/credentials
 	DEBUG_LEVEL=debug make -s test
-	cd coop_content_sdk; cargo publish
-	touch coop_content_sdk/src/lib.rs
+	cargo publish -p hc_coop_content_sdk
+	touch crates/hc_coop_content_sdk/src/lib.rs
 
 
 
@@ -173,14 +173,14 @@ clean-files-all-force:	clean-remove-chaff
 PRE_EDITION = edition = "2018"
 NEW_EDITION = edition = "2021"
 
-PRE_HDIE_VERSION = whi_hdi_extensions = "0.10"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.12"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.12"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.13"
 
-PRE_HDKE_VERSION = whi_hdk_extensions = "0.10"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.12"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.12"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.13"
 
 
-GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ *_types/ *_sdk/ tests/zomes
+GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ crates/*/ tests/zomes
 
 update-hdk-extensions-version:
 	git grep -l '$(PRE_HDKE_VERSION)' -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's|$(PRE_HDKE_VERSION)|$(NEW_HDKE_VERSION)|g'
