@@ -73,11 +73,8 @@ export const CoopContentZomelet		= new Zomelet({
 
 	return result.map( hash => new AnyLinkableHash( hash ) );
     },
-    async get_all_group_content_targets ( group_id ) {
-	const result			= await this.call({
-            "group_id":     new ActionHash( group_id ),
-            "full_trace":   false,
-        });
+    async get_all_group_content_targets ( input ) {
+	const result			= await this.call( input );
 
 	return result.map( ([id_addr, latest_addr]) => {
             return [

@@ -41,8 +41,8 @@ build:				$(COOP_CONTENT_WASM) $(COOP_CONTENT_CSR_WASM)
 
 zomes:
 	mkdir $@
-$(MERE_MEMORY_WASM):
-$(MERE_MEMORY_CSR_WASM):
+$(COOP_CONTENT_WASM):
+$(COOP_CONTENT_CSR_WASM):
 zomes/%.wasm:			$(TARGET_DIR)/%.wasm
 	@echo -e "\x1b[38;2mCopying WASM ($<) to 'zomes' directory: $@\x1b[0m"; \
 	cp $< $@
