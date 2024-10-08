@@ -1,0 +1,7 @@
+{
+    "version": "1",
+    "zomes": {
+        "coop_content": "zomes/coop_content/zome.json",
+        "coop_content_csr": "zomes/coop_content_csr/zome.json"
+    }
+}

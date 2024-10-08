@@ -1,0 +1,12 @@
+{
+    "type": "zome",
+    "version": "0.8.0-dev.0",
+    "target": "../coop_content_csr.wasm",
+    "name": "coop_content_csr",
+    "title": "Coop Content CSR",
+    "description": "Official coordinator zome for coop_content",
+    "zome_type": "coordinator",
+    "maintainer": null,
+    "tags": [],
+    "metadata": {}
+}
