@@ -93,7 +93,7 @@ impl GroupEntry {
 
     /// Check if the given agent is a member (not an admin)
     pub fn is_member(&self, agent: &AgentPubKey) -> bool {
-        self.admins.contains( agent )
+        self.members.contains( agent )
     }
 
     /// Return the differences between this group and the given group

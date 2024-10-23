@@ -86,7 +86,7 @@ impl ContributionsLinks for ContributionsAnchorEntry {
         }
 
         let base = hash_entry( self )?;
-        let content_type = content_type.unwrap_or("".to_string());
+        let content_type = content_type.map_or("".to_string(), |ct| format!("#{}#", ct) );
         let tag = match content_base {
             Some(base) => format!("{}:{}", content_type, base ),
             None => content_type,
@@ -164,7 +164,7 @@ impl ArchivedContributionsLinks for ArchivedContributionsAnchorEntry {
         }
 
         let base = self.base_hash()?;
-        let content_type = content_type.unwrap_or("".to_string());
+        let content_type = content_type.map_or("".to_string(), |ct| format!("#{}#", ct) );
         let tag = match content_base {
             Some(base) => format!("{}:{}", content_type, base ),
             None => content_type,

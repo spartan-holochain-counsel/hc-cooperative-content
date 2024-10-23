@@ -33,7 +33,6 @@
               export PS1="\[\e[1;32m\](flake-env)\[\e[0m\] \[\e[1;34m\]\u@\h:\w\[\e[0m\]$ "
               export CARGO_HOME=$(pwd)/.cargo
               export RUSTUP_HOME=$(pwd)/.rustup
-              rustup update
               rustup default stable
               rustup target add wasm32-unknown-unknown
             '';

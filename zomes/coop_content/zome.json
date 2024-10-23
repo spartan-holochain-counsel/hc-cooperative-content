@@ -2,7 +2,7 @@
     "type": "zome",
     "version": "0.8.0-dev.0",
     "target": "../coop_content.wasm",
-    "name": "coop_content",
+    "name": "@spartan-hc/coop_content",
     "title": "Coop Content",
     "description": "Integrity rules for collaborative content management",
     "zome_type": "integrity",

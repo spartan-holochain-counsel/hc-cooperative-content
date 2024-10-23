@@ -428,7 +428,7 @@ pub fn group_auth_archive_anchor_hash(input: GroupAuthInput) -> ExternResult<Ent
 #[hdk_extern]
 pub fn create_content_link(input: CreateContributionLinkInput) -> ExternResult<ActionHash> {
     let author = agent_id()?;
-    let tag = format!("{}:{}", input.content_type, input.content_base.unwrap_or("".to_string()) );
+    let tag = format!("#{}#:{}", input.content_type, input.content_base.unwrap_or("".to_string()) );
     debug!("Creating content link from ContributionsAnchorEntry( {}, {} ) =[{}]=> {}", input.group_id, author, tag, input.content_target );
     let anchor = ContributionsAnchorEntry( input.group_id, author );
     let anchor_hash = hash_entry( &anchor )?;
