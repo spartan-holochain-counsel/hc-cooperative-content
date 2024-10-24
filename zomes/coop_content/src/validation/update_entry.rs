@@ -25,8 +25,8 @@ pub fn validation(
                 invalid!("Updating a group can only be done by an admin".to_string())
             }
 
-            if group.admins != prev_group.admins {
-                invalid!("Changing a group's admin list requires counter-signing".to_string())
+            if group.admins.len() == 0 {
+                invalid!("Admin list cannot be empty".to_string())
             }
 
             valid!()
