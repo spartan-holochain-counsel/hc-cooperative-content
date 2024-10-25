@@ -26,6 +26,31 @@ export function GroupEntry ( entry ) {
 
 export class Group extends ScopedEntity {
     static STRUCT		= GroupStruct;
+
+    get contributors () {
+        return [
+            ...this.admins,
+            ...this.members,
+        ];
+    }
+
+    isContributor ( agent_pubkey ) {
+        return this.contributors
+            .map( agent => String(agent) )
+            .includes( String(new AgentPubKey(agent_pubkey)) );
+    }
+
+    isAdmin ( agent_pubkey ) {
+        return this.admins
+            .map( agent => String(agent) )
+            .includes( String(new AgentPubKey(agent_pubkey)) );
+    }
+
+    isMember ( agent_pubkey ) {
+        return this.members
+            .map( agent => String(agent) )
+            .includes( String(new AgentPubKey(agent_pubkey)) );
+    }
 }
 
 export default {

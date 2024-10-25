@@ -49,7 +49,6 @@ export const CoopContentZomelet		= new Zomelet({
 	return new Group( result, this );
     },
 
-
     //
     // Links
     //
@@ -88,8 +87,66 @@ export const CoopContentZomelet		= new Zomelet({
     //
     // Virtual functions
     //
-    async new_group ( input ) {
-	return await this.functions.create_group( input );
+    async add_member ( input ) {
+        const add_agent                 = new AgentPubKey( input.agent );
+	const group                     = await this.functions.get_group( input.group_id );
+
+        return await this.functions.update_group({
+	    "base": group.$action,
+	    "entry": Object.assign({}, group, {
+		"members": [
+                    ...group.members,
+                    add_agent,
+                ],
+	    }),
+        });
+    },
+    async remove_member ( input ) {
+        const remove_agent              = new AgentPubKey( input.agent );
+	const group                     = await this.functions.get_group( input.group_id );
+        const new_members_list          = group.members.filter( agent => String(agent) !== String(remove_agent) );
+
+        if ( new_members_list.length === group.members.length )
+            throw new Error(`No members were removed from group; '${remove_agent}' not in current members: ${group.members.map( agent => String(agent) ).join(", ")}`);
+
+        return await this.functions.update_group({
+	    "base": group.$action,
+	    "entry": Object.assign({}, group, {
+		"members": new_members_list,
+	    }),
+        });
+    },
+    async add_admin ( input ) {
+        const add_agent                 = new AgentPubKey( input.agent );
+	const group                     = await this.functions.get_group( input.group_id );
+
+        return await this.functions.update_group({
+	    "base": group.$action,
+	    "entry": Object.assign({}, group, {
+		"admins": [
+                    ...group.admins,
+                    add_agent,
+                ],
+	    }),
+        });
+    },
+    async remove_admin ( input ) {
+        const remove_agent              = new AgentPubKey( input.agent );
+	const group                     = await this.functions.get_group( input.group_id );
+        const new_admins_list          = group.admins.filter( agent => String(agent) !== String(remove_agent) );
+
+        if ( new_admins_list.length === group.admins.length )
+            throw new Error(`No admins were removed from group; '${remove_agent}' not in current admins: ${group.admins.map( agent => String(agent) ).join(", ")}`);
+
+        if ( new_admins_list.length === 0 )
+            throw new Error(`There must be at least 1 admin`);
+
+        return await this.functions.update_group({
+	    "base": group.$action,
+	    "entry": Object.assign({}, group, {
+		"admins": new_admins_list,
+	    }),
+        });
     },
 });
 
