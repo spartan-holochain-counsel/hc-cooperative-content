@@ -1,6 +1,6 @@
 {
     "type": "zome",
-    "version": "0.8.0-dev.0",
+    "version": "0.8.0-dev.1",
     "target": "../coop_content_csr.wasm",
     "name": "@spartan-hc/coop_content_csr",
     "title": "Coop Content CSR",

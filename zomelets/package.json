@@ -1,6 +1,6 @@
 {
   "name": "@spartan-hc/coop-content-zomelets",
-  "version": "0.2.0-dev.2",
+  "version": "0.2.0-dev.3",
   "description": "Zomelets for Cooperative Content Zomes",
   "type": "module",
   "main": "src/index.js",
