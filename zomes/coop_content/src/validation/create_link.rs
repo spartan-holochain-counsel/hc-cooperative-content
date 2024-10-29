@@ -109,6 +109,9 @@ pub fn validation(
 
             valid!()
         },
+        LinkTypes::GroupInvite => {
+            valid!()
+        },
         LinkTypes::Group => {
             // Group base should be an AgentPubKey
             let agent_pubkey = match base_address.clone().into_agent_pub_key() {

@@ -22,6 +22,7 @@ use hdk_extensions::{
 pub use scoped_types::entry_traits::*;
 use hdi_extensions::{
     trace_origin_root,
+    summon_create_link_action,
     ScopedTypeConnector,
     // Macros
     guest_error,
@@ -118,14 +119,21 @@ pub fn create_group(group: GroupEntry) -> ExternResult<Entity<GroupEntry>> {
     let agent_id = agent_id()?;
 
     for pubkey in group.contributors() {
-        let anchor = ContributionsAnchorEntry( action_hash.to_owned(), pubkey );
+        let anchor = ContributionsAnchorEntry( action_hash.clone(), pubkey.clone() );
         let anchor_hash = hash_entry( &anchor )?;
         debug!("Creating contributions anchor ({}): {:#?}", anchor_hash, anchor );
         create_entry( anchor.to_input() )?;
-        create_link( action_hash.to_owned(), anchor_hash, LinkTypes::GroupAuth, () )?;
+        create_link( action_hash.clone(), anchor_hash, LinkTypes::GroupAuth, () )?;
+
+        let invite_anchor_hash = Path::from(vec![
+            Component::from( format!("{}:invitations", pubkey ).as_bytes().to_vec() )
+        ]).path_entry_hash()?;
+
+        // Invite member to group
+        create_link( invite_anchor_hash, action_hash.clone(), LinkTypes::GroupInvite, () )?;
     }
 
-    create_link( agent_id, action_hash.to_owned(), LinkTypes::Group, () )?;
+    create_link( agent_id, action_hash.clone(), LinkTypes::Group, () )?;
 
     Ok(Entity {
         id: action_hash.clone(),
@@ -135,6 +143,97 @@ pub fn create_group(group: GroupEntry) -> ExternResult<Entity<GroupEntry>> {
         content: group,
     })
 }
+
+
+/// Get my invites
+#[hdk_extern]
+pub fn get_my_invites() -> ExternResult<Vec<(Link, Entity<GroupEntry>)>> {
+    let agent_id = agent_id()?;
+    let invite_anchor_hash = Path::from(vec![
+        Component::from( format!("{}:invitations", agent_id ).as_bytes().to_vec() )
+    ]).path_entry_hash()?;
+
+    Ok(
+        get_links(
+            create_link_input(
+                &invite_anchor_hash,
+                &LinkTypes::GroupInvite,
+                &None::<()>,
+            )?
+        )?.into_iter()
+            .filter_map(|link| {
+                let group_id = link.target.to_owned().into_action_hash()?;
+                let group = get_group( group_id ).ok()?;
+
+                Some((link, group))
+            })
+            .collect()
+    )
+}
+
+
+/// Get my invites
+#[hdk_extern]
+pub fn get_my_groups() -> ExternResult<Vec<Entity<GroupEntry>>> {
+    let agent_id = agent_id()?;
+    let my_group_links = get_links(
+        create_link_input(
+            &agent_id,
+            &LinkTypes::Group,
+            &None::<()>,
+        )?
+    )?;
+
+    Ok(
+        my_group_links.into_iter()
+            .filter_map(|link| {
+                let group_id = link.target.into_action_hash()?;
+                get_group( group_id ).ok()
+            })
+            .collect()
+    )
+}
+
+
+/// Accept group invite
+#[hdk_extern]
+pub fn accept_group_invite(invite_id: ActionHash) -> ExternResult<ActionHash> {
+    let agent_id = agent_id()?;
+    let link_action = summon_create_link_action( &invite_id )?;
+    let group_id = link_action.target_address;
+
+    let new_link_id = create_link( agent_id, group_id, LinkTypes::Group, () )?;
+    delete_link( invite_id )?;
+
+    Ok( new_link_id )
+}
+
+
+/// Remove group link
+#[hdk_extern]
+pub fn remove_group_links(group_id: ActionHash) -> ExternResult<Vec<ActionHash>> {
+    let agent_id = agent_id()?;
+    let my_group_links = get_links(
+        create_link_input(
+            &agent_id,
+            &LinkTypes::Group,
+            &None::<()>,
+        )?
+    )?;
+
+    Ok(
+        my_group_links.into_iter()
+            .filter_map( |link| {
+                if link.target == group_id.clone().into() {
+                    return delete_link( link.create_link_hash ).ok()
+                }
+
+                None
+            })
+            .collect()
+    )
+}
+
 
 
 /// Update a group
@@ -201,6 +300,13 @@ pub fn update_group(input: UpdateEntryInput<GroupEntry>) -> ExternResult<Entity<
         let anchor_hash = hash_entry( &anchor )?;
         create_if_not_exists( &anchor )?;
         create_link( action_hash.to_owned(), anchor_hash, LinkTypes::GroupAuth, () )?;
+
+        let invite_anchor_hash = Path::from(vec![
+            Component::from( format!("{}:invitations", pubkey ).as_bytes().to_vec() )
+        ]).path_entry_hash()?;
+
+        // Invite member to group
+        create_link( invite_anchor_hash, group_id.clone(), LinkTypes::GroupInvite, () )?;
     }
 
     for pubkey in contributors_diff.intersection {

@@ -50,6 +50,7 @@ scoped_type_connector!(
 /// The link types defined for this `coop_content` integrity zome
 #[hdk_link_types]
 pub enum LinkTypes {
+    GroupInvite,
     Group,
     GroupAuth,
     GroupAuthArchive,
@@ -63,6 +64,7 @@ impl TryFrom<String> for LinkTypes {
     fn try_from(name: String) -> Result<Self, Self::Error> {
         Ok(
             match name.as_str() {
+                "GroupInvite" => LinkTypes::GroupInvite,
                 "Group" => LinkTypes::Group,
                 "GroupAuth" => LinkTypes::GroupAuth,
                 "GroupAuthArchive" => LinkTypes::GroupAuthArchive,

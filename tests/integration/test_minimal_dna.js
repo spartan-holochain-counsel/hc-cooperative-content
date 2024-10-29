@@ -129,6 +129,28 @@ function basic_tests () {
 	group				= await alice_coop_content.create_group( group_input );
 	log.debug("Group ID: %s", group.$id );
 	log.normal( json.debug( group ) );
+
+        {
+            const my_groups		= await alice_coop_content.get_my_groups();
+            log.debug( json.debug( my_groups ) );
+
+            expect( my_groups		).to.have.length( 1 );
+        }
+        {
+            const my_groups		= await bobby_coop_content.get_my_groups();
+            log.debug( json.debug( my_groups ) );
+
+            expect( my_groups		).to.have.length( 0 );
+        }
+
+        await bobby_coop_content.accept_invitation_to_group( group.$id );
+
+        {
+            const my_groups		= await bobby_coop_content.get_my_groups();
+            log.debug( json.debug( my_groups ) );
+
+            expect( my_groups		).to.have.length( 1 );
+        }
     });
 
     it("should update group", async function () {
@@ -139,6 +161,15 @@ function basic_tests () {
             "entry": group,
         });
         log.debug( json.debug( group ) );
+
+        {
+            await bobby_coop_content.purge_old_groups();
+
+            const my_groups		= await bobby_coop_content.get_my_groups();
+            log.debug( json.debug( my_groups ) );
+
+            expect( my_groups		).to.have.length( 0 );
+        }
     });
 
     it("should get group", async function () {

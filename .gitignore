@@ -1,5 +1,6 @@
 /.cargo
 /.rustup
+/.devhub
 /target
 /coop_content_types/target
 /coop_content_sdk/target

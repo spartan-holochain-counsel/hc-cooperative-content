@@ -8,6 +8,7 @@ use crate::{
 use hdi::prelude::*;
 use hdi_extensions::{
     summon_app_entry,
+    // AnyLinkableHashTransformer,
     // Macros
     valid, invalid,
 };
@@ -50,6 +51,9 @@ pub fn validation(
                 },
             };
 
+            valid!()
+        },
+        LinkTypes::GroupInvite => {
             valid!()
         },
         LinkTypes::Group => {

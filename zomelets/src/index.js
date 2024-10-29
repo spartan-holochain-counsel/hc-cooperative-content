@@ -43,6 +43,31 @@ export const CoopContentZomelet		= new Zomelet({
 
 	return new Group( result, this );
     },
+    async get_my_invites ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( ([link, group]) => {
+            return {
+                "link":     link,
+                "group":    new Group( group, this ),
+            };
+        });
+    },
+    async get_my_groups ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( group => new Group( group, this ) );
+    },
+    async accept_group_invite ( input ) {
+	const result			= await this.call( input );
+
+	return new ActionHash( result );
+    },
+    async reject_group_invite ( input ) {
+	const result			= await this.call( input );
+
+	return new ActionHash( result );
+    },
     async update_group ( input ) {
 	const result			= await this.call( input );
 
@@ -81,6 +106,11 @@ export const CoopContentZomelet		= new Zomelet({
                 new AnyLinkableHash( latest_addr ),
             ];
         });
+    },
+    async remove_group_links ( input ) {
+	const result			= await this.call( input );
+
+	return result.map( hash => new ActionHash( hash ) );
     },
 
 
@@ -147,6 +177,35 @@ export const CoopContentZomelet		= new Zomelet({
 		"admins": new_admins_list,
 	    }),
         });
+    },
+    async purge_old_groups () {
+	const groups			= await this.functions.get_my_groups();
+        const removed_groups            = [];
+
+	for ( let group of groups ) {
+            if ( !group.isContributor( this.cell.client.agent_id ) ) {
+                await this.functions.remove_group_links( group.$id );
+                removed_groups.push( group );
+            }
+        }
+
+        return removed_groups;
+    },
+    async accept_invitation_to_group ( group_id ) {
+        const my_invites		= await this.functions.get_my_invites();
+        const accepted_invites          = [];
+
+        for ( let invite of my_invites ) {
+            if ( String(invite.group.$id) == String(new ActionHash(group_id)) ) {
+                await this.functions.accept_group_invite( invite.link.create_link_hash );
+                accepted_invites.push( invite );
+            }
+        }
+
+        if ( accepted_invites.length === 0 )
+            throw new Error(`No invites were accepted`);
+
+	return accepted_invites;
     },
 });
 
