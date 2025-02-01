@@ -15,4 +15,4 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 hc_coop_content_types = { version = "0.7.0-dev.1", path = "../hc_coop_content_types" }
 serde = "1"
-whi_hdk_extensions = "0.13"
+whi_hdk_extensions = "0.14"

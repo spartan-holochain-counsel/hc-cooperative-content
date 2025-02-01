@@ -173,11 +173,11 @@ clean-files-all-force:	clean-remove-chaff
 PRE_EDITION = edition = "2018"
 NEW_EDITION = edition = "2021"
 
-PRE_HDIE_VERSION = whi_hdi_extensions = "0.12"
-NEW_HDIE_VERSION = whi_hdi_extensions = "0.13"
+PRE_HDIE_VERSION = whi_hdi_extensions = "0.13"
+NEW_HDIE_VERSION = whi_hdi_extensions = "0.14"
 
-PRE_HDKE_VERSION = whi_hdk_extensions = "0.12"
-NEW_HDKE_VERSION = whi_hdk_extensions = "0.13"
+PRE_HDKE_VERSION = whi_hdk_extensions = "0.13"
+NEW_HDKE_VERSION = whi_hdk_extensions = "0.14"
 
 
 GG_REPLACE_LOCATIONS = ':(exclude)*.lock' zomes/*/ crates/*/ tests/zomes
